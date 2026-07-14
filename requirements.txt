@@ -1,0 +1,8 @@
+torch
+polars
+xxhash
+numpy
+scikit-learn
+datasets
+tensorboard
+matplotlib

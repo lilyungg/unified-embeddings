@@ -1,0 +1,19 @@
+{
+  "config": {
+    "fast": true,
+    "n_rows": 1000000,
+    "epochs": 10,
+    "patience": null,
+    "batch": null,
+    "lr": 0.001,
+    "rank": null
+  },
+  "results": {
+    "Non-multiplex + MLP": {"auc": 0.7612},
+    "Non-multiplex + DCN": {"auc": 0.7365},
+    "Multiplex + MLP":     {"auc": 0.7694},
+    "Multiplex + DCN":     {"auc": 0.7507},
+    "Collisionless + MLP": {"auc": 0.7819},
+    "Collisionless + DCN": {"auc": 0.7517}
+  }
+}

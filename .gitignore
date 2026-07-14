@@ -1,0 +1,12 @@
+# Python env / caches
+.venv/
+__pycache__/
+*.pyc
+
+# Data (regenerable — see README/DATASETS.md)
+ml-1m/
+ml-1m.zip
+datasets/
+raw/
+sweep.log
+nohup.out
