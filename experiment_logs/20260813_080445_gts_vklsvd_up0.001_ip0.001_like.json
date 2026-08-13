@@ -1,0 +1,103 @@
+{
+  "config": {
+    "dataset": "vklsvd",
+    "subset": "up0.001_ip0.001",
+    "positive": "like",
+    "interaction": "multi",
+    "budgets": [
+      1.0
+    ],
+    "base_levels": null,
+    "k": 32,
+    "batch": 4096,
+    "lr": 0.001,
+    "epochs": 2,
+    "patience": 0,
+    "batches_per_epoch": 0,
+    "loss": "full",
+    "runs": 1,
+    "seed": 42,
+    "only": "Collisionless",
+    "tb": "runs",
+    "out": "experiment_logs",
+    "ts": "20260813_080445",
+    "tag": "vklsvd_up0.001_ip0.001_like"
+  },
+  "results": [
+    {
+      "dataset": "vklsvd_up0.001_ip0.001_like",
+      "method": "Collisionless",
+      "budget": 1.0,
+      "rows": 31985,
+      "size_mb": 3.8382,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_recall10": 0.006,
+      "test_recall50": 0.0165,
+      "test_recall100": 0.0293,
+      "test_ndcg10": 0.0045,
+      "test_ndcg50": 0.0074,
+      "test_ndcg100": 0.0099,
+      "test_hr10": 0.0146,
+      "test_hr50": 0.0399,
+      "test_hr100": 0.0635,
+      "test_coverage10": 0.0041,
+      "test_coverage50": 0.0167,
+      "test_coverage100": 0.0314,
+      "best_val_ndcg100": 0.0094,
+      "proj_overlap_mean": 0.1781,
+      "proj_overlap_max": 0.2715,
+      "ranks": [
+        1.2,
+        2.103,
+        2.311,
+        2.634,
+        1.514,
+        2.663,
+        7.388
+      ],
+      "rank_sum": 19.814,
+      "rank_budget": 30,
+      "emb_l2_final": 0.2806,
+      "epochs_run": 2,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 9.4572,
+          "val_recall10": 0.0023,
+          "val_recall50": 0.0109,
+          "val_recall100": 0.029,
+          "val_ndcg10": 0.002,
+          "val_ndcg50": 0.0043,
+          "val_ndcg100": 0.008,
+          "val_hr10": 0.0073,
+          "val_hr50": 0.0344,
+          "val_hr100": 0.0755,
+          "val_coverage10": 0.0021,
+          "val_coverage50": 0.01,
+          "val_coverage100": 0.0193,
+          "proj_overlap": 0.1757,
+          "emb_l2": 0.2569
+        },
+        {
+          "epoch": 2,
+          "loss": 9.2078,
+          "val_recall10": 0.0033,
+          "val_recall50": 0.0121,
+          "val_recall100": 0.0349,
+          "val_ndcg10": 0.0023,
+          "val_ndcg50": 0.0048,
+          "val_ndcg100": 0.0094,
+          "val_hr10": 0.0073,
+          "val_hr50": 0.0358,
+          "val_hr100": 0.0841,
+          "val_coverage10": 0.005,
+          "val_coverage50": 0.0206,
+          "val_coverage100": 0.0371,
+          "proj_overlap": 0.1781,
+          "emb_l2": 0.2806
+        }
+      ]
+    }
+  ]
+}
