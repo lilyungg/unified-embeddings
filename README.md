@@ -5,7 +5,7 @@ tables, budget split by cardinality), Multiplex (one shared table, per-feature
 hash salt), Collisionless (exact vocabulary, upper bound) — replicating
 Feature Multiplexing / Unified Embedding (https://arxiv.org/abs/2305.12102)
 on CTR ranking, then extended to retrieval: two-tower candidate generation,
-SASRec, and featured runs under the dataset owners' GTS protocols.
+SASRec, and featured runs under the dataset owners' evaluation protocols.
 Per-dataset processing and traps: [DATASETS.md](DATASETS.md). Formal theory
 for the retrieval losses: [THEORY.md](THEORY.md).
 
@@ -74,7 +74,7 @@ python sasrec_run.py --dataset ml1m --budgets 1.0 0.5 0.1     # + tied baseline 
 python sasrec_run.py --dataset ml1m --no-align-roles          # salted item_in/item_out
 ```
 
-### GTS arm (features + owners' protocol: Yambda, VK-LSVD)
+### Yambda / VK-LSVD (features, owners' evaluation protocol)
 
 ```
 bash run_server_gts.sh setup && bash run_server_gts.sh smoke
@@ -160,8 +160,13 @@ pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table sh
 ## Results — candidate generation (two-tower, full softmax)
 
 Linear towers (d=30, k=32), softmax over the full catalog, seen items masked,
-test HR@10. MovieLens: 5 runs (mean ± std); other datasets: single run.
-Collisionless runs once at the max budget.
+test HR@10. Budget = embedding-table rows as a fraction of the total
+vocabulary: at 1.0x the hashed methods spend exactly the memory of
+Collisionless and differ only in random row assignment; 0.5x / 0.1x halve /
+decimate the rows. Collisionless has no budget knob — one exact row per value
+— so it appears once as the upper bound ("—" cells are non-existent
+configurations, not missing runs). ± std is shown where 5 seeds were run
+(MovieLens); single-run cells carry no interval.
 
 | Dataset | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|---|
@@ -185,8 +190,14 @@ Collisionless runs once at the max budget.
 
 GSASRec backbone (github.com/NonameUntitled/logq, architecture untouched),
 authors' ml1m config; only the embedding tables are swapped. Test NDCG@10 /
-HR@10, single run. aligned = one hash for item_in/item_out; tied = shared
-input/output item embeddings (no collisions, 0.5x the untied rows).
+HR@10, single run (no intervals). Untied SASRec holds two item tables (input
+sequence and scoring head), so 3.60 MB = full untied vocabulary; tying reuses
+one table for both roles — a structural 2x compression with zero collisions —
+which is why Collisionless (tied) is the upper bound of the 1.85 MB row and
+no collisionless configuration exists below it. The tied/untied axis exists
+only here: two-tower models have no second role to tie. aligned = one hash
+for item_in/item_out (tying + collisions); default Multiplex salts them
+separately.
 
 | Memory | Configuration | NDCG@10 | HR@10 |
 |---|---|---|---|
@@ -202,17 +213,17 @@ input/output item embeddings (no collisions, 0.5x the untied rows).
 | | Multiplex (aligned) | 0.0352 | 0.0644 |
 | | Non-multiplex | 0.0275 | 0.0485 |
 
-## Results — GTS arm (features, owners' protocol)
+## Results — Yambda and VK-LSVD (owners' evaluation protocol)
 
-Two-tower as above; in-batch sampled softmax + logQ; Global Temporal Split,
-top-100 over the train catalog, no seen-item masking, cold target items kept,
-recall@K = hits / min(|T|, K), macro over users; model selection on val
-NDCG@100. Deviations from the owners' code: [DATASETS.md](DATASETS.md).
-Test recall@100, 5 seeds (mean ± std).
+Two-tower as above; in-batch sampled softmax + logQ; Global Temporal Split
+(train = past, test = a future window), top-100 over the train catalog, no
+seen-item masking, cold target items kept, recall@K = hits / min(|T|, K),
+macro over users; model selection on val NDCG@100. Budget as in the previous
+section (1.0x = the memory of Collisionless). Deviations from the owners'
+code: [DATASETS.md](DATASETS.md). Test recall@100, 5 seeds (mean ± std) in
+every cell.
 
-**Yambda-50M multi** — train on all events (listens with played_ratio ≥ 50,
-likes, dis/unlikes; 30.4M events, 696K-item catalog), targets = next-day
-likes. Towers: user_id + event_type / item_id + track-length bucket.
+**Yambda-50M multi**
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -220,8 +231,7 @@ likes. Towers: user_id + event_type / item_id + track-length bucket.
 | 0.5x | 0.0142 ± 0.0012 | 0.0284 ± 0.0046 | — |
 | 0.1x | 0.0040 ± 0.0008 | 0.0106 ± 0.0016 | — |
 
-**Yambda-50M likes** — likes only (872K train events, 180K catalog), the
-owners' default interaction. Towers: user_id / item_id.
+**Yambda-50M likes**
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -229,11 +239,7 @@ owners' default interaction. Towers: user_id / item_id.
 | 0.5x | 0.0204 ± 0.0029 | 0.0295 ± 0.0048 | — |
 | 0.1x | 0.0068 ± 0.0007 | 0.0085 ± 0.0017 | — |
 
-**VK-LSVD ur0.01_ip0.01** — official subsample: 1% random users x 1% most
-popular items (u=user, i=item, r=random, p=popular by train interaction
-rank); weekly GTS (train weeks 00-24, val 25, test 26); positives = likes
-(4.06M train events, 64K users, 173K-item catalog). Towers: user_id + age +
-gender + geo / item_id + author_id + duration.
+**VK-LSVD ur0.01_ip0.01**
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -241,5 +247,5 @@ gender + geo / item_id + author_id + duration.
 | 0.5x | 0.0203 ± 0.0003 | 0.0274 ± 0.0006 | — |
 | 0.1x | 0.0096 ± 0.0004 | 0.0196 ± 0.0005 | — |
 
-JSONs: experiment_logs/ (5-seed GTS: 20260813_090758 multi, 20260813_102949
+JSONs: experiment_logs/ (5-seed: 20260813_090758 multi, 20260813_102949
 likes, 20260813_103823 vklsvd).
