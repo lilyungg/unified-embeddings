@@ -6,8 +6,10 @@
 set -euo pipefail
 
 PY=.venv/bin/python
-RUNS=1               # bump to 5 for mean±std
-VK_SUBSET=ur0.01_ip0.01   # 100K users / 196K items / ~5.6M train likes
+RUNS=${RUNS:-1}           # RUNS=5 bash run_server_gts.sh all -> mean±std
+EPOCHS=${EPOCHS:-80}      # headroom; patience stops converged runs early
+PATIENCE=${PATIENCE:-8}
+VK_SUBSET=${VK_SUBSET:-ur0.01_ip0.01}   # 100K users / 196K items / ~5.6M train likes
 
 setup() {
   command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -28,14 +30,15 @@ smoke() {   # ~10 min: tiny VK subsample end-to-end + yambda loader
 
 yambda() {   # all features: train on listens+likes+dis/un-likes, targets=likes
   $PY candgen_gts.py --dataset yambda_50m --interaction multi \
-    --batches-per-epoch 2000 --runs $RUNS
+    --batches-per-epoch 2000 --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
   # likes-only row, directly comparable to their BPR/ALS setting:
-  $PY candgen_gts.py --dataset yambda_50m --interaction likes --runs $RUNS
+  $PY candgen_gts.py --dataset yambda_50m --interaction likes \
+    --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
 }
 
 vklsvd() {   # weekly GTS; features: user_id+age+gender+geo / item+author+duration
   $PY candgen_gts.py --dataset vklsvd --subset $VK_SUBSET \
-    --batches-per-epoch 2000 --runs $RUNS
+    --batches-per-epoch 2000 --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
 }
 
 case "${1:-all}" in
