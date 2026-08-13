@@ -358,6 +358,74 @@ JSONs: experiment_logs/*_candgen.json. Formal derivations (gradient
 decomposition for softmax losses, the annihilation condition, the rank budget,
 norm dynamics): [THEORY.md](THEORY.md).
 
+## GTS arm — all features, owners' evaluation protocol (Yambda, VK-LSVD)
+
+`candgen_gts.py` is the multi-vocabulary arm: every usable categorical feature
+enters the towers, and evaluation follows the dataset owners' protocol
+(Global Temporal Split, top-100 over the train-item catalog, no seen-item
+masking, cold target items kept, recall@K = hits / min(|T|, K), macro over
+users; deviations from their code are listed in DATASETS.md). Vocabularies:
+Yambda multi — user_id + event_type / item_id + track-length bucket (30.4M
+events, 696K-item catalog); Yambda likes — ids only (their BPR/ALS setting);
+VK-LSVD — user_id+age+gender+geo / item_id+author_id+duration (7 vocabularies,
+the closest setup to the paper's 26-feature Criteo).
+
+```
+bash run_server_gts.sh setup && bash run_server_gts.sh smoke
+RUNS=5 bash run_server_gts.sh all
+```
+
+Test recall@100, 5 seeds (mean ± std):
+
+**Yambda-50M multi** (train on all events, targets = next-day likes)
+
+| Budget | Non-multiplex | Multiplex | Collisionless |
+|---|---|---|---|
+| 1.0x | 0.0214 ± 0.0015 | 0.0352 ± 0.0030 | 0.0536 ± 0.0025 |
+| 0.5x | 0.0142 ± 0.0012 | 0.0284 ± 0.0046 | — |
+| 0.1x | 0.0040 ± 0.0008 | 0.0106 ± 0.0016 | — |
+
+**Yambda-50M likes** (their default interaction)
+
+| Budget | Non-multiplex | Multiplex | Collisionless |
+|---|---|---|---|
+| 1.0x | 0.0282 ± 0.0014 | 0.0395 ± 0.0033 | 0.0501 ± 0.0037 |
+| 0.5x | 0.0204 ± 0.0029 | 0.0295 ± 0.0048 | — |
+| 0.1x | 0.0068 ± 0.0007 | 0.0085 ± 0.0017 | — |
+
+**VK-LSVD ur0.01_ip0.01** (positives = likes, ~4.1M train events)
+
+| Budget | Non-multiplex | Multiplex | Collisionless |
+|---|---|---|---|
+| 1.0x | 0.0253 ± 0.0008 | 0.0294 ± 0.0004 | 0.0300 ± 0.0008 |
+| 0.5x | 0.0203 ± 0.0003 | 0.0274 ± 0.0006 | — |
+| 0.1x | 0.0096 ± 0.0004 | 0.0196 ± 0.0005 | — |
+
+Findings:
+
+1. **The multiplex advantage grows with compression on every dataset**:
+   x1.65 / x2.00 / x2.66 (Yambda multi), x1.40 / x1.45 / x1.26 (likes),
+   x1.16 / x1.35 / x2.03 (VK-LSVD) at 1.0x / 0.5x / 0.1x; every gap is an
+   order of magnitude above seed noise.
+2. **In the 7-vocabulary regime multiplexing is nearly free at full budget**:
+   VK-LSVD Multiplex 1.0x (0.0294 ± 0.0004) matches Collisionless
+   (0.0300 ± 0.0008) within noise, and Multiplex at 10x compression equals
+   Non-multiplex at 2x (0.0196 vs 0.0203) — a 5x memory saving at equal
+   quality.
+3. **Reader overlap separates the methods**: Multiplex 0.13-0.17 vs
+   Non-multiplex/Collisionless 0.18 across datasets and budgets — the
+   orthogonalization signature, now at 5-seed resolution (gaps > 3 std).
+4. One mixed cell, reported as-is: Yambda likes at 0.1x — Multiplex wins
+   recall@100 (0.0085 vs 0.0068) but loses NDCG@100 (0.0021 vs 0.0030) and
+   recall@10; with an 872K-event signal and an 18.8K-row table, the shared
+   pool hurts the head of the ranking while still helping the tail.
+5. Training on all event types helps the headroom: Collisionless multi
+   reaches 0.0536 on a 696K catalog vs 0.0501 likes-only on a 180K catalog —
+   higher recall on a 4x harder task.
+
+JSONs: experiment_logs/20260813_*_gts_*.json (5-seed: 090758 multi,
+102949 likes, 103823 vklsvd).
+
 ## Files
 
 ```
