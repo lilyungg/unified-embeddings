@@ -1,35 +1,3 @@
-"""Two-tower candidate generation under feature multiplexing.
-
-Retrieval-side extension of the Unified Embedding study (Coleman et al. 2023),
-whose theory and benchmarks cover pointwise BCE ranking only. Formal
-derivations: THEORY.md. Results: README ("Candidate generation").
-
-Datasets
-  movielens  ML-1M positives (ratings 4-5); rich user tower
-             (user_id, gender, age, occupation, zip) + movie_id.
-  beauty     Amazon Beauty, SASRec preprocessing + leave-one-out.
-  steam      Steam reviews, same.
-  gowalla    Check-ins, LightGCN split.
-  The last three are id-only (user_id / item_id), as standardly used — the
-  pure test of item-id and cross-tower collisions.
-
-Methods (all write into ONE flat table; only the row codes differ)
-  Collisionless  per-feature offsets, exact vocabulary
-  Non-multiplex  per-feature hash tables, budget split by vocabulary share
-  Multiplex      one shared space, feature-salted hashing
-
-Measurements per run
-  HR@K / NDCG@K over the full catalog, seen items masked
-  proj_overlap   normalized ||A_t A_s^T||_F over per-feature reader blocks
-                 (subspace orthogonalization; THEORY.md §3)
-  rank_sum       sum of stable ranks of the readers, vs the budget d (Cor. 3)
-  emb_l2         mean L2 norm of used rows (norm dynamics; THEORY.md §4)
-
-Usage
-  python candgen.py --dataset beauty --budgets 1.0 0.5 0.1
-  python candgen.py --dataset movielens --loss sampled --score cosine
-  python candgen.py --dataset beauty --worst-init --only Multiplex
-"""
 import argparse
 import datetime
 import json
@@ -49,10 +17,7 @@ EMB_DIM = 30
 ML_USER_COLS = ['user_id', 'gender', 'age', 'occupation', 'zip']
 
 
-# ---------------------------------------------------------------- data
-
 def build_data(args) -> dict:
-    """Common structure: raw per-user feature values, raw item values, splits."""
     if args.dataset == 'movielens':
         df, _, labels, _, _, _ = load_movielens(args.ml1m)
         df = df.with_columns(pl.Series('label', labels)).filter(pl.col('label') == 1)
@@ -76,13 +41,13 @@ def build_data(args) -> dict:
     else:
         import retrieval_data
         d = retrieval_data.load(args.dataset)
-        user_vals = {'user_id': d['users']}          # id-only tower
+        user_vals = {'user_id': d['users']}
         item_vals = d['items']
         tr, va, te = d['train'], d['val'], d['test']
         n_users, n_items = len(d['users']), len(d['items'])
 
-    seen_tr    = _csr(tr, n_users)                    # mask for val eval
-    seen_trval = _csr(np.concatenate([tr, va]), n_users)   # for test eval
+    seen_tr    = _csr(tr, n_users)
+    seen_trval = _csr(np.concatenate([tr, va]), n_users)
     return {'user_vals': user_vals, 'item_vals': item_vals,
             'user_cols': list(user_vals), 'n_users': n_users, 'n_items': n_items,
             'train': tr, 'val': va, 'test': te,
@@ -90,18 +55,13 @@ def build_data(args) -> dict:
 
 
 def _csr(pairs: np.ndarray, n_users: int):
-    """Sparse seen-items index: (sorted_pairs, per-user offsets). A dense
-    n_users x n_items mask is billions of entries on these catalogs."""
     order = np.argsort(pairs[:, 0], kind='stable')
     p = pairs[order]
     offs = np.searchsorted(p[:, 0], np.arange(n_users + 1))
     return p, offs
 
 
-# ------------------------------------------------------- table encoding
-
 def encode_tables(data: dict, method: str, budget: float, base_levels: int):
-    """Row codes for every feature under one flat table."""
     cols = data['user_cols'] + ['item_id']
     vals = {**data['user_vals'], 'item_id': data['item_vals']}
     vocabs = {c: np.unique(vals[c]) for c in cols}
@@ -119,7 +79,7 @@ def encode_tables(data: dict, method: str, budget: float, base_levels: int):
             h = prehash(v, (0,), lev, feature_id=c)[:, 0]
             codes[c] = h + offset
             offset += lev
-        else:  # Collisionless
+        else:
             lut = {x: i for i, x in enumerate(vocabs[c])}
             codes[c] = np.array([lut[x] for x in v], dtype=np.int64) + offset
             offset += sizes[c]
@@ -128,8 +88,6 @@ def encode_tables(data: dict, method: str, budget: float, base_levels: int):
     user_codes = np.stack([codes[c] for c in data['user_cols']], axis=1)
     return user_codes.astype(np.int64), codes['item_id'].astype(np.int64), n_rows, total
 
-
-# ------------------------------------------------------------- model
 
 class TwoTower(nn.Module):
     def __init__(self, n_rows, d, k, n_user_feats, worst_init=False, seed=42,
@@ -165,8 +123,6 @@ class TwoTower(nn.Module):
         return F.normalize(v, dim=1) if self.score == 'cosine' else v
 
     def proj_overlap(self):
-        """Normalized ||A_t A_s^T||_F over reader pairs. Reference levels for
-        full-rank k x d blocks: identical ~0.26, independent random ~1/sqrt(d)."""
         bs = self.blocks()
         with torch.no_grad():
             vals = [ (bs[i] @ bs[j].T).norm().item()
@@ -175,20 +131,15 @@ class TwoTower(nn.Module):
         return (float(np.mean(vals)), float(np.max(vals))) if vals else (0.0, 0.0)
 
     def ranks(self):
-        """Stable rank ||A||_F^2 / sigma_1^2 per reader. Cor. 3: if the readers
-        orthogonalize, sum of ranks <= d."""
         with torch.no_grad():
             rs = []
             for A in self.blocks():
-                s = torch.linalg.svdvals(A.float().cpu())   # no SVD on MPS
+                s = torch.linalg.svdvals(A.float().cpu())
                 rs.append(((s ** 2).sum() / (s[0] ** 2 + 1e-12)).item())
         return rs
 
 
-# -------------------------------------------------------------- eval
-
 def evaluate(model, uc, ic, pairs, seen, device, ks=(10, 20, 50, 100), chunk=512) -> dict:
-    """Full-catalog ranking, seen items masked, chunked over users."""
     model.eval()
     seen_pairs, seen_offs = seen
     max_k = max(ks)
@@ -207,7 +158,7 @@ def evaluate(model, uc, ic, pairs, seen, device, ks=(10, 20, 50, 100), chunk=512
                 continue
             scores = model.user(uc[lo:hi]) @ V.T
             s, e = seen_offs[lo], seen_offs[hi]
-            if e > s:                                   # mask seen items
+            if e > s:
                 sp = seen_pairs[s:e]
                 scores[torch.as_tensor(sp[:, 0] - lo, device=device),
                        torch.as_tensor(sp[:, 1], device=device)] = float('-inf')
@@ -233,8 +184,6 @@ def emb_l2_used(model, used) -> float:
     with torch.no_grad():
         return model.emb.weight[used].norm(dim=1).mean().item()
 
-
-# ---------------------------------------------------------- experiment
 
 def run_experiment(method, budget, data, device, args, seed=42) -> dict:
     user_codes, item_codes, n_rows, total_vocab = encode_tables(

@@ -8,9 +8,6 @@ from torch.utils.data import Dataset
 
 CACHE_DIR = pathlib.Path('datasets')
 
-# Every loader returns (df_categorical, dense_or_None, labels, tr, va, te):
-# dense is a float32 matrix of normalized continuous features (Criteo only).
-
 
 class EmbDataset(Dataset):
     def __init__(self, x: np.ndarray, y: np.ndarray, dense: np.ndarray = None) -> None:
@@ -33,9 +30,6 @@ def random_split(n: int, train: float = 0.8, val: float = 0.1, seed: int = 42):
 
 
 def temporal_split(n: int, train: float = 6 / 7, seed: int = 42):
-    """Paper's Criteo protocol (DCN-V2): first 6 days train, day 7 split
-    50/50 into val/test randomly. The Kaggle file has no day column but is
-    chronological, so day boundaries are approximated by row count."""
     cut  = int(train * n)
     rng  = np.random.default_rng(seed)
     tail = rng.permutation(np.arange(cut, n))
@@ -44,9 +38,6 @@ def temporal_split(n: int, train: float = 6 / 7, seed: int = 42):
 
 
 def load_movielens(path: str, label_mode: str = 'wang') -> tuple:
-    # label_mode="wang": preprocessing of Wang et al. 2021 (DCN-V2), which the
-    # Unified Embedding paper follows — ratings 1-2 -> 0, 4-5 -> 1, 3s removed.
-    # label_mode="ge3": rating >= 3 -> 1, others 0, nothing removed.
     path = pathlib.Path(path)
     user_info = {}
     with open(path / 'users.dat') as f:
@@ -82,9 +73,6 @@ def load_avazu(path: str = None, n_rows: int = None) -> tuple:
     if path and path.endswith('.parquet'):
         prepared = pathlib.Path(path)
     if prepared.exists():
-        # prepare_data.py output: int32 codes, Table 5 pruning, hour-of-day.
-        # Paper split (AutoInt): shuffle, 10% test; we carve val from the
-        # remainder -> 81/9/10.
         df = pl.read_parquet(prepared)
         if n_rows:
             df = df.sample(n=n_rows, seed=42)
@@ -118,12 +106,9 @@ def load_avazu(path: str = None, n_rows: int = None) -> tuple:
 def load_criteo(n_rows: int = None, path: str = None) -> tuple:
     prepared = pathlib.Path(path) if path else CACHE_DIR / 'criteo_prepared.parquet'
     if prepared.exists():
-        # prepare_data.py output: int32 codes (Table 4 pruning) + log-normalized
-        # I1-I13 + label, in original (chronological) row order.
         df = pl.read_parquet(prepared)
         n  = len(df)
         if n_rows and n_rows < n:
-            # keep chronology for the temporal split: contiguous head sample
             df = df.head(n_rows)
         labels = df['label'].to_numpy()
         dense  = df.select([f'I{i}' for i in range(1, 14)]).to_numpy()

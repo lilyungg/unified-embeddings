@@ -3,7 +3,6 @@ from torch import nn
 
 
 class SimpleMLP(nn.Module):
-    # emb_out_dim must include the dense feature width when dense is used
     def __init__(self, emb_module: nn.Module, emb_out_dim: int) -> None:
         super().__init__()
         self.emb = emb_module
@@ -20,7 +19,6 @@ class SimpleMLP(nn.Module):
 
 
 class DCNV2(nn.Module):
-    # paper defaults: no dropout, no BatchNorm in the DNN stack (App. B)
     def __init__(self, emb_module: nn.Module, emb_out_dim: int,
                  num_cross: int = 1, dnn_dims: tuple = (192,),
                  dropout: float = 0.0, use_bn: bool = False,
@@ -64,7 +62,6 @@ class DCNV2(nn.Module):
     def forward(self, x: torch.Tensor, dense: torch.Tensor = None) -> torch.Tensor:
         e = self.emb(x)
         if dense is not None and dense.shape[1]:
-            # DCN-V2: normalized continuous features are part of x0
             e = torch.cat([e, dense], dim=1)
         return self.output(self.dnn(self.cross_network(e))).squeeze(1)
 

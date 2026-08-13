@@ -1,12 +1,3 @@
-"""Generate replication plots from a movielens run JSON.
-
-Usage: python plots.py experiment_logs/<ts>_movielens.json [outdir]
-
-Outputs (default outdir plots/):
-  tradeoff.png  parameter-accuracy tradeoff, ours vs paper (Table 1 row)
-  norms.png     embedding squared-norm growth vs the O(N/M) theory (Fig. 2)
-  curves.png    val AUC training curves per memory budget
-"""
 import json
 import pathlib
 import sys
@@ -19,7 +10,6 @@ import matplotlib.pyplot as plt
 from report import PAPER
 
 
-# validated categorical palette (fixed slot order) + chart chrome
 COLORS  = {'Non-multiplex': '#2a78d6', 'Multiplex': '#1baf7a', 'Collisionless': '#eda100'}
 INK     = '#0b0b0b'
 MUTED   = '#898781'

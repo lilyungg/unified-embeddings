@@ -75,7 +75,7 @@ def train_model(
             row['test_auc'] = round(evaluate(model, te_loader, device), 5)
             test_str = f"  test_auc {row['test_auc']:.4f}"
         history.append(row)
-        if writer is not None:                   # AUC only — the rest is in JSON
+        if writer is not None:
             sfx = f'/{tb_tag}' if tb_tag else ''
             writer.add_scalar(f'auc_val{sfx}',     val_auc,    epoch)
             if te_loader is not None:

@@ -1,19 +1,3 @@
-"""Single-layer model (logistic regression over embeddings) on MovieLens,
-testing the paper's Fig. 2 predictions for multiplexed (unified) embeddings:
-
-  (a) per-feature weight vectors theta_t ORTHOGONALIZE during training —
-      stronger for smaller tables M, where inter-feature collisions dominate.
-      Worst-case init as in the paper: every theta_t starts in the SAME
-      direction (angle 0), so any angle growth is learned.
-  (b) mean embedding L2 norm grows as the table shrinks (||e||^2 ~ O(N/M)).
-
-The model is the paper's Sec. 4.2 setup: logit = sum_t <e_{h_t(x_t)}, theta_t> + b.
-
-Usage:
-  python orthogonality.py --ml1m ml-1m [--budgets 2.0 1.0 0.5 0.2 0.1 0.05 0.02 0.01]
-
-Outputs: experiment_logs/<ts>_orthogonality.json, plots/orthogonality.png
-"""
 import argparse
 import datetime
 import json
@@ -31,7 +15,6 @@ from ue import UnifiedEmbedding, prehash
 
 
 class SingleLayer(nn.Module):
-    """Logistic regression with per-feature weights theta_t (paper Fig. 2)."""
 
     def __init__(self, emb_levels: int, n_features: int, emb_dim: int, seed: int = 42) -> None:
         super().__init__()
@@ -40,7 +23,6 @@ class SingleLayer(nn.Module):
         g = torch.Generator().manual_seed(seed)
         v = torch.randn(emb_dim, generator=g)
         v = v / v.norm()
-        # worst-case init: all theta_t share one direction (pairwise angle 0)
         self.theta = nn.Parameter(v.repeat(n_features, 1).clone())
         self.bias  = nn.Parameter(torch.zeros(1))
 

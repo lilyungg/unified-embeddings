@@ -1,30 +1,3 @@
-"""Export experiment_logs/*.json training histories to TensorBoard.
-
-Makes past runs browsable next to live ones (train.py and candgen_gts.py write
-TB directly; candgen.py and sasrec_run.py log JSON histories — this converts).
-
-Handles both JSON shapes:
-  ranking    {budgets: {b: {exp: {runs: [...], histories: [[row]]}}}}
-             row: {epoch, train_loss, val_auc, emb_l2_mean}
-  retrieval  {results: [{method, budget, seed, history: [row]}]}
-             row: {epoch, loss, val_*, proj_overlap?, emb_l2}
-
-Layout is built for small charts: tag = <metric>/<json_stem>/b<budget>, so
-TensorBoard groups by metric and each card holds one experiment's methods —
-never more curves than the sweep has methods. Multi-seed runs are averaged
-into one curve per method. Final test numbers are NOT exported (single-dot
-charts; they live in the JSONs and README tables).
-
-Exported curves: AUC for the ranking arm (auc_val, auc_test under the paper
-protocol) and validation NDCG / recall@100 for the retrieval arms. Everything
-else — losses, norms, overlap, other cutoffs — stays in the JSON histories.
-Runs shorter than 2 epochs (smokes) are skipped, so no single-dot charts.
-
-Usage
-  python tb_export.py                     # all experiment_logs/*.json
-  python tb_export.py experiment_logs/20260808_*.json --force
-Then: tensorboard --logdir runs
-"""
 import argparse
 import json
 import pathlib
@@ -35,11 +8,10 @@ METRIC = {'val_auc': 'auc_val', 'test_auc': 'auc_test',
 
 
 def _metric(key: str):
-    return METRIC.get(key)                       # everything else stays in JSON
+    return METRIC.get(key)
 
 
 def _mean_histories(hists):
-    """Average rows across seeds per epoch; ragged tails use available seeds."""
     if len(hists) == 1:
         return hists[0]
     by_epoch = {}
@@ -61,7 +33,7 @@ def _write(run_dir: pathlib.Path, history, suffix: str, force: bool) -> bool:
     if run_dir.exists() and not force:
         return False
     if len(history) < 2:
-        return False                             # smoke run: a dot, not a curve
+        return False
     if not any(_metric(k) for row in history for k in row):
         return False
     from torch.utils.tensorboard import SummaryWriter
@@ -83,7 +55,7 @@ def export(path: pathlib.Path, out: pathlib.Path, force: bool) -> int:
         return 0
     stem, n = path.stem, 0
 
-    if isinstance(d, dict) and isinstance(d.get('results'), list):  # retrieval
+    if isinstance(d, dict) and isinstance(d.get('results'), list):
         groups = {}
         for r in d['results']:
             if isinstance(r, dict) and r.get('history'):
@@ -92,7 +64,7 @@ def export(path: pathlib.Path, out: pathlib.Path, force: bool) -> int:
         for (method, budget), hists in groups.items():
             n += _write(out / stem / f'b{budget}' / method.replace(' ', '_'),
                         _mean_histories(hists), f'{stem}/b{budget}', force)
-    elif isinstance(d, dict) and 'budgets' in d:                    # ranking
+    elif isinstance(d, dict) and 'budgets' in d:
         for b, exps in d['budgets'].items():
             for exp, e in exps.items():
                 hists = e.get('histories') or []

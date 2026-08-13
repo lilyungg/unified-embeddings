@@ -1,46 +1,3 @@
-"""Featured two-tower retrieval under the owners' GTS protocols.
-
-Extends the candidate-generation arm (candgen.py) in two directions the vanilla
-study deliberately excluded:
-
-  1. All usable categorical features enter the towers (multi-vocabulary
-     multiplexing, the regime the UE paper is actually about);
-  2. Evaluation follows the dataset owners' protocol, so absolute numbers are
-     comparable to their baselines: Global Temporal Split, scores over the full
-     train-item catalog, NO masking of seen items, cold target items kept
-     (unreachable, they deflate recall — as in Yambda benchmarks with
-     drop_non_train_items=False), top-100 lists, macro-averaged
-     recall@K / NDCG@K / coverage@K, K in {10, 50, 100}.
-
-Deviations from the owners' code, both deliberate:
-  - NDCG uses the correct per-user IDCG (their published metrics.py normalizes
-    DCG by itself — line `ideal_dcg = calc_dcg(target_mask)` — collapsing NDCG
-    into a hit indicator);
-  - no Optuna hyperparameter search, single fixed config per dataset.
-
-Datasets
-  yambda_50m / yambda_500m  (yandex/yambda)
-    --interaction likes    train/eval on like events (their BPR/ALS default)
-    --interaction listens  listens with played_ratio_pct >= 50 (their rule)
-    --interaction multi    all events; event_type becomes a query-side
-                           conditioning feature, eval conditions on 'like'
-    Item feature: log2 bucket of track_length_seconds (unknown -> own bucket).
-  vklsvd  (deepvk/VK-LSVD)  --subset up0.001_ip0.001 | ur0.01_ip0.01 | ...
-    Weekly GTS: train weeks 00-24, val week_25, test week_26.
-    Query tower: user_id + age + gender + geo (users_metadata).
-    Item tower:  item_id + author_id + duration (items_metadata).
-    --positive like (default) or watch (timespent >= 0.5 * duration).
-    Context columns (place/platform/agent) stay out of the towers: they are
-    event-level, and the owners' per-user eval has no per-event query slot.
-
-Methods per budget: Collisionless / Non-multiplex / Multiplex — same row-code
-construction as candgen.py, one flat table.
-
-Usage
-  python candgen_gts.py --dataset vklsvd --subset up0.001_ip0.001 --loss full
-  python candgen_gts.py --dataset yambda_50m --interaction multi \
-      --batches-per-epoch 2000
-"""
 import argparse
 import datetime
 import json
@@ -59,19 +16,15 @@ from ue import prehash
 EMB_DIM = 30
 KS = (10, 50, 100)
 TOPN = 100
-LISTEN_THRESHOLD = 50          # played_ratio_pct >= 50 == their Listen+
+LISTEN_THRESHOLD = 50
 
-
-# ---------------------------------------------------------------- loading
 
 def _col(name, values):
-    """Feature column -> (name, vocab_size, per-entity vocab index)."""
     vocab, inv = np.unique(values, return_inverse=True)
     return {'name': name, 'vocab': vocab, 'inv': inv.astype(np.int64)}
 
 
 def _targets(us, items, u_map, cat_map):
-    """Per train-known user: total positives (cold included) + catalog idxs."""
     out = {}
     for u, i in zip(us, items):
         if u in u_map:
@@ -100,7 +53,7 @@ def load_yambda_gts(size: str, interaction: str) -> dict:
     va = df.filter((pl.col('timestamp') >= test_ts - day - gap)
                    & (pl.col('timestamp') < test_ts - gap))
     te = df.filter(pl.col('timestamp') >= test_ts)
-    if interaction == 'multi':                     # targets = likes only
+    if interaction == 'multi':
         va, te = (s.filter(pl.col('event_type') == 'like') for s in (va, te))
 
     users = np.unique(tr['uid'].to_numpy())
@@ -111,7 +64,7 @@ def load_yambda_gts(size: str, interaction: str) -> dict:
     ev_i = np.array([cat_map[x] for x in tr['item_id'].to_numpy()], dtype=np.int64)
 
     item_cols = [_col('item_id', catalog)]
-    if interaction != 'likes':                     # track-length bucket
+    if interaction != 'likes':
         tl = (tr.group_by('item_id').agg(pl.col('track_length_seconds').max())
                 .drop_nulls())
         lut = dict(zip(tl['item_id'].to_list(), tl['track_length_seconds'].to_list()))
@@ -182,10 +135,7 @@ def load_vklsvd_gts(subset: str, positive: str) -> dict:
             'test': _targets(te['user_id'].to_numpy(), te['item_id'].to_numpy(), u_map, cat_map)}
 
 
-# ------------------------------------------------------- table encoding
-
 def encode_all(data: dict, method: str, budget: float, base_levels: int):
-    """Row codes for every feature vocabulary under one flat table."""
     cols = data['q_static'] + data['ev_cols'] + data['item_cols']
     sizes = {c['name']: len(c['vocab']) for c in cols}
     total = sum(sizes.values())
@@ -214,10 +164,7 @@ def encode_all(data: dict, method: str, budget: float, base_levels: int):
     return QS, EV, EVAL, IC, n_rows, total
 
 
-# ------------------------------------------------------------- model
-
 class TwoTowerFeat(nn.Module):
-    """Linear towers over summless concat: q = A [e_1..e_p], v = B [e_1..e_r]."""
 
     def __init__(self, n_rows, d, k, n_q, n_i) -> None:
         super().__init__()
@@ -257,12 +204,7 @@ class TwoTowerFeat(nn.Module):
         return rs
 
 
-# -------------------------------------------------------------- eval
-
 def evaluate_gts(model, Q, IC, targets, n_catalog, device, chunk=256) -> dict:
-    """Owners' protocol: top-100 over the train catalog, no seen-masking;
-    recall@k = hits / min(|T|, k); NDCG binary with correct IDCG; coverage@k =
-    union of top-k across evaluated users / catalog."""
     model.eval()
     users = sorted(targets)
     disc = 1.0 / np.log2(np.arange(2, TOPN + 2))
@@ -296,8 +238,6 @@ def evaluate_gts(model, Q, IC, targets, n_catalog, device, chunk=256) -> dict:
     return out
 
 
-# ---------------------------------------------------------- experiment
-
 def run_experiment(method, budget, data, device, args, seed=42) -> dict:
     QS, EV, EVAL, IC, n_rows, total_vocab = encode_all(
         data, method, budget, args.base_levels)
@@ -314,7 +254,6 @@ def run_experiment(method, budget, data, device, args, seed=42) -> dict:
     EVt = [torch.tensor(e, device=device) for e in EV]
     ev_u = torch.tensor(data['ev_u'], device=device)
     ev_i = torch.tensor(data['ev_i'], device=device)
-    # eval-time query: static features + event columns pinned to eval values
     Qe = torch.cat([QSt] + [torch.full((len(QSt), 1), v, dtype=torch.long,
                                        device=device) for v in EVAL], dim=1)
 
@@ -347,7 +286,7 @@ def run_experiment(method, budget, data, device, args, seed=42) -> dict:
             items_b = ev_i[idx]
             if args.loss == 'full':
                 loss = F.cross_entropy(u @ model.items(ICt).T, items_b)
-            else:                                  # in-batch sampled + logQ
+            else:
                 logits = u @ model.items(ICt[items_b]).T - logq[items_b]
                 same = items_b.unsqueeze(0) == items_b.unsqueeze(1)
                 same.fill_diagonal_(False)
@@ -364,13 +303,13 @@ def run_experiment(method, budget, data, device, args, seed=42) -> dict:
         history.append({'epoch': epoch, 'loss': round(tot / nb, 4),
                         **{f'val_{k}': v for k, v in val.items()},
                         'proj_overlap': round(ov, 4), 'emb_l2': round(l2, 4)})
-        if tb:                                   # mirrors tb_export's whitelist
+        if tb:
             tb.add_scalar(f'ndcg100_val/{tb_tag}', val['ndcg100'], epoch)
             tb.add_scalar(f'recall100_val/{tb_tag}', val['recall100'], epoch)
         print(f"    epoch {epoch:>2}: loss {tot/nb:.4f}  "
               f"val_ndcg100 {val['ndcg100']:.4f}  val_recall100 {val['recall100']:.4f}"
               f"  overlap {ov:.3f}  emb_l2 {l2:.3f}", flush=True)
-        if val['ndcg100'] > best:                  # their hyperopt criterion
+        if val['ndcg100'] > best:
             best, bad = val['ndcg100'], 0
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         else:

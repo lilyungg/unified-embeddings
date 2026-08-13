@@ -20,10 +20,6 @@ from ue import (
 )
 
 
-# emb_dim / emb_levels / architecture follow the paper (App. B):
-# movielens: 1 cross + DNN 192; avazu: 1 cross + DNN 512x2; criteo: 2 cross + DNN 748x2.
-# batch/lr: movielens tuned locally (reproduces Table 1, see DATASETS.md);
-# avazu/criteo start from the paper's values.
 DATASET_CFG = {
     'movielens': {'emb_dim': 30, 'emb_levels': 13_653, 'cross': 1, 'dnn': (192,),
                   'batch': 128, 'lr': 1e-3},
@@ -127,7 +123,6 @@ def run_dataset(
     def mlp(emb):
         return SimpleMLP(emb, emb_out)
 
-    # DCN only by default (the paper has no MLP arm); --with-mlp adds it back
     def make_emb(kind):
         if kind == 'nm':   return NonMultiplexedEmbedding(vs, emb_levels, emb_dim)
         if kind == 'hash': return UnifiedEmbedding(emb_levels, emb_dim)
@@ -150,7 +145,6 @@ def run_dataset(
         if not specs:
             raise ValueError(f"--only '{only}' matched no experiments")
 
-    # encode inputs lazily: only for the embedding kinds actually selected
     needed  = {kind for _, kind, _ in specs}
     loaders = {}
     if 'hash' in needed:
@@ -206,7 +200,6 @@ def run_dataset(
                 'epochs_run':   len(history),
             }
             if eval_test_epochs:
-                # paper protocol (Tsang & Ahle): best test AUC over epochs
                 run['auc_best_epoch'] = max(h['test_auc'] for h in history)
             runs.append(run)
             histories.append(history)

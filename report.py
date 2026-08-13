@@ -1,14 +1,7 @@
-"""Print a markdown table comparing a run's results to the paper (Table 1).
-
-Usage: python report.py experiment_logs/<ts>_<dataset>.json
-"""
 import json
 import sys
 
 
-# Paper AUCs (Table 1, /100). Keyed by dataset -> budget -> method.
-# Budget 1.0 corresponds to the repo's base emb_levels, which map to these
-# paper columns: movielens 1.6MB, avazu 3.24MB, criteo 12.5MB.
 PAPER = {
     'movielens': {
         'col_names': {1.0: '1.6MB', 0.5: '791kB', 0.1: '158kB'},

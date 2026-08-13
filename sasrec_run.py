@@ -1,22 +1,3 @@
-"""Feature multiplexing inside SASRec — external-validity arm of the study.
-
-The vanilla linear-tower study (candgen.py) measures the mechanism on the exact
-objects the theory is about. This one asks the practical question on a standard
-sequential backbone: at a fixed embedding-table budget, how much retrieval
-quality does multiplexing buy?
-
-Model: GSASRec from https://github.com/NonameUntitled/logq (Apache-2.0, the
-code of Khrylchenko et al., RecSys 2025), architecture untouched; only the
-embedding tables are swapped (sasrec/embeddings.py). SASRec holds three
-vocabularies — item_in, item_out, position — which Multiplex folds into one
-shared table.
-
-Protocol: SASRec leave-one-out (last interaction test, previous val), full
-softmax over the catalog, Recall@K / NDCG@K over all non-interacted items.
-
-Usage:
-  python sasrec_run.py --dataset beauty --budgets 1.0 0.5 0.1
-"""
 import argparse
 import datetime
 import json
@@ -31,7 +12,6 @@ from sasrec import GSASRec, MultiplexedEmbeddings
 
 
 def build_sequences(d: dict, max_len: int):
-    """Per-user chronological item sequences (ids shifted by 1; 0 = padding)."""
     n_items = len(d['items'])
     pad = n_items + 1
     seqs = {}
@@ -50,7 +30,6 @@ def build_sequences(d: dict, max_len: int):
 
 def eval_split(model, users, seqs, targets, extra, max_len, pad, n_items,
                device, ks=(10, 20), chunk=256) -> dict:
-    """Rank the held-out item against the full catalog, seen items masked."""
     model.eval()
     us = [u for u in users if u in targets]
     hits = dict.fromkeys(ks, 0)
@@ -68,7 +47,7 @@ def eval_split(model, users, seqs, targets, extra, max_len, pad, n_items,
             scores = h[:, -1, :] @ W.T
             scores[:, 0] = float('-inf')
             scores[:, n_items + 1:] = float('-inf')
-            for r, u in enumerate(batch):                   # mask seen items
+            for r, u in enumerate(batch):
                 seen = seqs[u] + ([extra[u]] if extra and u in extra else [])
                 scores[r, torch.as_tensor(seen, device=device)] = float('-inf')
             top = scores.topk(max(ks), dim=1).indices.cpu().numpy()
@@ -117,7 +96,7 @@ def run(method, budget, data, args, device, seed=42) -> dict:
         perm = torch.randperm(len(X), device=device)
         n_steps = min(args.batches_per_epoch, (len(X) + args.batch - 1) // args.batch)
         tot, nb = 0.0, 0
-        for step in range(n_steps):                  # authors' short "epoch"
+        for step in range(n_steps):
             s = step * args.batch
             b = X[perm[s:s + args.batch]]
             inp, labels = b[:, :-1], b[:, 1:]
@@ -158,10 +137,6 @@ def run(method, budget, data, args, device, seed=42) -> dict:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    # Defaults follow the authors' configs/ml1m_sasrec.py (logq repo):
-    # sequence_length 200, embedding_dim 128, 1 head, 2 blocks, dropout 0.5,
-    # and an "epoch" of 100 batches — so hundreds of short epochs with early
-    # stopping, not a handful of full passes.
     p.add_argument('--dataset', default='ml1m',
                    choices=['ml1m', 'beauty', 'steam', 'gowalla', 'yambda_50m'])
     p.add_argument('--budgets', nargs='+', type=float, default=[1.0, 0.5, 0.1])
@@ -204,10 +179,6 @@ def main() -> None:
             for r in range(args.runs):
                 results.append(run(m, b, data, args, device, seed=args.seed + r))
 
-    # Weight tying is the structured competitor to hashing: it halves the item
-    # rows (input row == output row for the same item) with zero collisions, so
-    # it is the honest baseline at the 0.5x budget. Below 0.5x it cannot go —
-    # that is where hashing has no alternative.
     if args.tied_baseline and not args.tie_io:
         tied_args = argparse.Namespace(**{**vars(args), 'tie_io': True})
         for r in range(args.runs):

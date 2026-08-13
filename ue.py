@@ -5,7 +5,6 @@ from torch import nn
 
 
 def _mix64(x: np.ndarray) -> np.ndarray:
-    # splitmix64 finalizer — vectorized uniform mixing for integer codes
     x = x.astype(np.uint64, copy=True)
     x += np.uint64(0x9E3779B97F4A7C15)
     x ^= x >> np.uint64(30)
@@ -21,10 +20,6 @@ def prehash(values: np.ndarray, seeds: tuple, emb_levels: int,
     values = np.asarray(values)
     out = np.empty((len(values), len(seeds)), dtype=np.int64)
     if np.issubdtype(values.dtype, np.integer):
-        # fast path for pre-encoded datasets: salt integer codes with the
-        # feature id in the high bits, then mix (string xxhash on web-scale
-        # data takes hours; this is vectorized and equally uniform)
-        # .encode(): xxhash 4.x no longer accepts str; digest is unchanged
         salt = np.uint64(xxhash.xxh32(feature_id.encode(), 0).intdigest())
         v = values.astype(np.uint64)
         for j, seed in enumerate(seeds):
@@ -44,8 +39,6 @@ def build_vocabs(df, cols: list) -> dict:
     for col in cols:
         values = df[col].to_numpy()
         if np.issubdtype(values.dtype, np.integer):
-            # pre-encoded dense codes 0..K-1: vocab spans the full code range
-            # (a subsample may miss codes; preencode maps code -> code+1)
             vocabs[col] = {str(i): i + 1 for i in range(int(values.max()) + 1)}
         else:
             vals = sorted(df[col].unique().to_list(), key=str)
@@ -58,8 +51,6 @@ def preencode(df, cols: list, vocabs: dict) -> np.ndarray:
     for col in cols:
         values = df[col].to_numpy()
         if np.issubdtype(values.dtype, np.integer):
-            # pre-encoded datasets are already dense 0..K-1 codes; shift by 1
-            # to reserve 0 for OOV, matching the vs+1 collisionless table
             encoded = values.astype(np.int64) + 1
         else:
             vocab = vocabs[col]
@@ -71,8 +62,6 @@ def preencode(df, cols: list, vocabs: dict) -> np.ndarray:
 
 
 def prehash_split(df, cols: list, levels: list) -> np.ndarray:
-    # paper §2: independent hash functions h_t per feature — same per-feature
-    # salting as prehash(), so overlapping vocabularies don't collide in sync
     parts = []
     for col, lev in zip(cols, levels):
         values = df[col].to_numpy()
@@ -89,8 +78,6 @@ def prehash_split(df, cols: list, levels: list) -> np.ndarray:
 
 
 def _init_embeddings(module: nn.Module) -> None:
-    # Keras-style init (paper is TF2): uniform(-0.05, 0.05); PyTorch default N(0,1)
-    # starts embeddings ~100x too large and wastes epochs shrinking them
     for m in module.modules():
         if isinstance(m, nn.Embedding):
             nn.init.uniform_(m.weight, -0.05, 0.05)

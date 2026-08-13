@@ -1,42 +1,34 @@
 #!/usr/bin/env bash
-# Featured GTS arm on a GPU server: Yambda (all features, owners' protocol)
-# and VK-LSVD. Run from the repo root. Data downloads itself into datasets/
-# (~2 GB total for the default subsets). Smoke-test first:
-#   bash run_server_gts.sh setup && bash run_server_gts.sh smoke
 set -euo pipefail
 
 PY=.venv/bin/python
-RUNS=${RUNS:-1}           # RUNS=5 bash run_server_gts.sh all -> mean±std
-EPOCHS=${EPOCHS:-80}      # headroom; patience stops converged runs early
+RUNS=${RUNS:-1}
+EPOCHS=${EPOCHS:-80}
 PATIENCE=${PATIENCE:-8}
-VK_SUBSET=${VK_SUBSET:-ur0.01_ip0.01}   # 100K users / 196K items / ~5.6M train likes
+VK_SUBSET=${VK_SUBSET:-ur0.01_ip0.01}
 
 setup() {
   command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
   uv venv --python 3.12 .venv
   uv pip install --python $PY -r requirements.txt
-  # If cuda is False, reinstall torch for the driver's CUDA (see nvidia-smi):
-  #   uv pip install --python $PY --reinstall torch \
-  #     --index-url https://download.pytorch.org/whl/cu124
   $PY -c "import torch; print('cuda:', torch.cuda.is_available())"
 }
 
-smoke() {   # ~10 min: tiny VK subsample end-to-end + yambda loader
+smoke() {
   $PY candgen_gts.py --dataset vklsvd --subset up0.001_ip0.001 --loss full \
     --budgets 1.0 --epochs 2 --patience 0 --only Collisionless
   $PY candgen_gts.py --dataset yambda_50m --interaction likes \
     --budgets 1.0 --epochs 2 --patience 0 --only Multiplex
 }
 
-yambda() {   # all features: train on listens+likes+dis/un-likes, targets=likes
+yambda() {
   $PY candgen_gts.py --dataset yambda_50m --interaction multi \
     --batches-per-epoch 2000 --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
-  # likes-only row, directly comparable to their BPR/ALS setting:
   $PY candgen_gts.py --dataset yambda_50m --interaction likes \
     --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
 }
 
-vklsvd() {   # weekly GTS; features: user_id+age+gender+geo / item+author+duration
+vklsvd() {
   $PY candgen_gts.py --dataset vklsvd --subset $VK_SUBSET \
     --batches-per-epoch 2000 --runs $RUNS --epochs $EPOCHS --patience $PATIENCE
 }
