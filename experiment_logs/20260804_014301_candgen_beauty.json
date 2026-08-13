@@ -1,0 +1,1089 @@
+{
+  "config": {
+    "dataset": "beauty",
+    "ml1m": "ml-1m",
+    "budgets": [
+      1.0,
+      0.5,
+      0.1
+    ],
+    "base_levels": null,
+    "k": 32,
+    "batch": 1024,
+    "lr": 0.001,
+    "epochs": 20,
+    "patience": 3,
+    "runs": 1,
+    "seed": 42,
+    "loss": "full",
+    "score": "dot",
+    "temp": 0.05,
+    "only": null,
+    "worst_init": false,
+    "out": "experiment_logs"
+  },
+  "results": [
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 1.0,
+      "rows": 109493,
+      "size_mb": 13.1392,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_hr10": 0.004,
+      "test_hr20": 0.0062,
+      "test_ndcg10": 0.0018,
+      "test_ndcg20": 0.0024,
+      "best_val_hr10": 0.0052,
+      "proj_overlap_mean": 0.1733,
+      "proj_overlap_max": 0.1733,
+      "ranks": [
+        1.646,
+        1.655
+      ],
+      "rank_sum": 3.301,
+      "rank_budget": 30,
+      "emb_l2_final": 0.5757,
+      "epochs_run": 5,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.6963,
+          "val_hr10": 0.0051,
+          "val_hr20": 0.0079,
+          "val_ndcg10": 0.0022,
+          "val_ndcg20": 0.0029,
+          "proj_overlap": 0.1629,
+          "emb_l2": 0.5141
+        },
+        {
+          "epoch": 2,
+          "loss": 10.226,
+          "val_hr10": 0.0052,
+          "val_hr20": 0.008,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.0034,
+          "proj_overlap": 0.1733,
+          "emb_l2": 0.5757
+        },
+        {
+          "epoch": 3,
+          "loss": 10.1593,
+          "val_hr10": 0.005,
+          "val_hr20": 0.0101,
+          "val_ndcg10": 0.0025,
+          "val_ndcg20": 0.0038,
+          "proj_overlap": 0.1804,
+          "emb_l2": 0.6012
+        },
+        {
+          "epoch": 4,
+          "loss": 10.1389,
+          "val_hr10": 0.0052,
+          "val_hr20": 0.0094,
+          "val_ndcg10": 0.0028,
+          "val_ndcg20": 0.0039,
+          "proj_overlap": 0.189,
+          "emb_l2": 0.6182
+        },
+        {
+          "epoch": 5,
+          "loss": 10.126,
+          "val_hr10": 0.0051,
+          "val_hr20": 0.0094,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.0038,
+          "proj_overlap": 0.1958,
+          "emb_l2": 0.6329
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 1.0,
+      "rows": 109493,
+      "size_mb": 13.1392,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_hr10": 0.0081,
+      "test_hr20": 0.0135,
+      "test_ndcg10": 0.0039,
+      "test_ndcg20": 0.0053,
+      "best_val_hr10": 0.0127,
+      "proj_overlap_mean": 0.1473,
+      "proj_overlap_max": 0.1473,
+      "ranks": [
+        6.08,
+        6.698
+      ],
+      "rank_sum": 12.778,
+      "rank_budget": 30,
+      "emb_l2_final": 0.7542,
+      "epochs_run": 18,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.6987,
+          "val_hr10": 0.0037,
+          "val_hr20": 0.0074,
+          "val_ndcg10": 0.0016,
+          "val_ndcg20": 0.0025,
+          "proj_overlap": 0.3165,
+          "emb_l2": 0.5035
+        },
+        {
+          "epoch": 2,
+          "loss": 10.1619,
+          "val_hr10": 0.005,
+          "val_hr20": 0.0089,
+          "val_ndcg10": 0.0022,
+          "val_ndcg20": 0.0032,
+          "proj_overlap": 0.2673,
+          "emb_l2": 0.5485
+        },
+        {
+          "epoch": 3,
+          "loss": 10.051,
+          "val_hr10": 0.005,
+          "val_hr20": 0.0094,
+          "val_ndcg10": 0.0025,
+          "val_ndcg20": 0.0036,
+          "proj_overlap": 0.2658,
+          "emb_l2": 0.567
+        },
+        {
+          "epoch": 4,
+          "loss": 9.9863,
+          "val_hr10": 0.0058,
+          "val_hr20": 0.0098,
+          "val_ndcg10": 0.0029,
+          "val_ndcg20": 0.0039,
+          "proj_overlap": 0.2401,
+          "emb_l2": 0.5819
+        },
+        {
+          "epoch": 5,
+          "loss": 9.9085,
+          "val_hr10": 0.0071,
+          "val_hr20": 0.012,
+          "val_ndcg10": 0.0034,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1806,
+          "emb_l2": 0.597
+        },
+        {
+          "epoch": 6,
+          "loss": 9.8169,
+          "val_hr10": 0.0074,
+          "val_hr20": 0.0134,
+          "val_ndcg10": 0.0036,
+          "val_ndcg20": 0.0051,
+          "proj_overlap": 0.1437,
+          "emb_l2": 0.6116
+        },
+        {
+          "epoch": 7,
+          "loss": 9.7447,
+          "val_hr10": 0.0083,
+          "val_hr20": 0.0142,
+          "val_ndcg10": 0.0041,
+          "val_ndcg20": 0.0056,
+          "proj_overlap": 0.1459,
+          "emb_l2": 0.6268
+        },
+        {
+          "epoch": 8,
+          "loss": 9.6804,
+          "val_hr10": 0.0088,
+          "val_hr20": 0.0137,
+          "val_ndcg10": 0.0042,
+          "val_ndcg20": 0.0054,
+          "proj_overlap": 0.1512,
+          "emb_l2": 0.6461
+        },
+        {
+          "epoch": 9,
+          "loss": 9.5991,
+          "val_hr10": 0.0089,
+          "val_hr20": 0.0145,
+          "val_ndcg10": 0.0042,
+          "val_ndcg20": 0.0056,
+          "proj_overlap": 0.147,
+          "emb_l2": 0.6621
+        },
+        {
+          "epoch": 10,
+          "loss": 9.4893,
+          "val_hr10": 0.0093,
+          "val_hr20": 0.016,
+          "val_ndcg10": 0.0045,
+          "val_ndcg20": 0.0061,
+          "proj_overlap": 0.1459,
+          "emb_l2": 0.678
+        },
+        {
+          "epoch": 11,
+          "loss": 9.3488,
+          "val_hr10": 0.0102,
+          "val_hr20": 0.0175,
+          "val_ndcg10": 0.0049,
+          "val_ndcg20": 0.0068,
+          "proj_overlap": 0.1449,
+          "emb_l2": 0.6942
+        },
+        {
+          "epoch": 12,
+          "loss": 9.1955,
+          "val_hr10": 0.0104,
+          "val_hr20": 0.0177,
+          "val_ndcg10": 0.0052,
+          "val_ndcg20": 0.007,
+          "proj_overlap": 0.1475,
+          "emb_l2": 0.7098
+        },
+        {
+          "epoch": 13,
+          "loss": 9.0413,
+          "val_hr10": 0.0112,
+          "val_hr20": 0.0187,
+          "val_ndcg10": 0.0054,
+          "val_ndcg20": 0.0073,
+          "proj_overlap": 0.1489,
+          "emb_l2": 0.726
+        },
+        {
+          "epoch": 14,
+          "loss": 8.8961,
+          "val_hr10": 0.0121,
+          "val_hr20": 0.0205,
+          "val_ndcg10": 0.0058,
+          "val_ndcg20": 0.008,
+          "proj_overlap": 0.1481,
+          "emb_l2": 0.7408
+        },
+        {
+          "epoch": 15,
+          "loss": 8.7603,
+          "val_hr10": 0.0127,
+          "val_hr20": 0.0203,
+          "val_ndcg10": 0.0061,
+          "val_ndcg20": 0.008,
+          "proj_overlap": 0.1473,
+          "emb_l2": 0.7542
+        },
+        {
+          "epoch": 16,
+          "loss": 8.6311,
+          "val_hr10": 0.0119,
+          "val_hr20": 0.0208,
+          "val_ndcg10": 0.0061,
+          "val_ndcg20": 0.0083,
+          "proj_overlap": 0.1468,
+          "emb_l2": 0.7669
+        },
+        {
+          "epoch": 17,
+          "loss": 8.5121,
+          "val_hr10": 0.0122,
+          "val_hr20": 0.0205,
+          "val_ndcg10": 0.0061,
+          "val_ndcg20": 0.0082,
+          "proj_overlap": 0.1472,
+          "emb_l2": 0.7796
+        },
+        {
+          "epoch": 18,
+          "loss": 8.4,
+          "val_hr10": 0.0125,
+          "val_hr20": 0.021,
+          "val_ndcg10": 0.0062,
+          "val_ndcg20": 0.0083,
+          "proj_overlap": 0.1473,
+          "emb_l2": 0.792
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Collisionless",
+      "budget": 1.0,
+      "rows": 109493,
+      "size_mb": 13.1392,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_hr10": 0.0134,
+      "test_hr20": 0.0217,
+      "test_ndcg10": 0.0067,
+      "test_ndcg20": 0.0088,
+      "best_val_hr10": 0.0212,
+      "proj_overlap_mean": 0.1863,
+      "proj_overlap_max": 0.1863,
+      "ranks": [
+        6.743,
+        6.985
+      ],
+      "rank_sum": 13.728,
+      "rank_budget": 30,
+      "emb_l2_final": 0.8978,
+      "epochs_run": 18,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.6768,
+          "val_hr10": 0.003,
+          "val_hr20": 0.008,
+          "val_ndcg10": 0.0013,
+          "val_ndcg20": 0.0026,
+          "proj_overlap": 0.2714,
+          "emb_l2": 0.5577
+        },
+        {
+          "epoch": 2,
+          "loss": 9.9798,
+          "val_hr10": 0.0049,
+          "val_hr20": 0.0106,
+          "val_ndcg10": 0.0019,
+          "val_ndcg20": 0.0033,
+          "proj_overlap": 0.2451,
+          "emb_l2": 0.6512
+        },
+        {
+          "epoch": 3,
+          "loss": 9.8509,
+          "val_hr10": 0.0038,
+          "val_hr20": 0.0097,
+          "val_ndcg10": 0.0021,
+          "val_ndcg20": 0.0036,
+          "proj_overlap": 0.2272,
+          "emb_l2": 0.6892
+        },
+        {
+          "epoch": 4,
+          "loss": 9.8162,
+          "val_hr10": 0.0058,
+          "val_hr20": 0.0109,
+          "val_ndcg10": 0.0029,
+          "val_ndcg20": 0.0042,
+          "proj_overlap": 0.2136,
+          "emb_l2": 0.7169
+        },
+        {
+          "epoch": 5,
+          "loss": 9.7944,
+          "val_hr10": 0.0058,
+          "val_hr20": 0.011,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.004,
+          "proj_overlap": 0.1954,
+          "emb_l2": 0.7378
+        },
+        {
+          "epoch": 6,
+          "loss": 9.7473,
+          "val_hr10": 0.0071,
+          "val_hr20": 0.0119,
+          "val_ndcg10": 0.0034,
+          "val_ndcg20": 0.0046,
+          "proj_overlap": 0.1833,
+          "emb_l2": 0.7593
+        },
+        {
+          "epoch": 7,
+          "loss": 9.6084,
+          "val_hr10": 0.0105,
+          "val_hr20": 0.0167,
+          "val_ndcg10": 0.0053,
+          "val_ndcg20": 0.0068,
+          "proj_overlap": 0.2093,
+          "emb_l2": 0.7823
+        },
+        {
+          "epoch": 8,
+          "loss": 9.3886,
+          "val_hr10": 0.014,
+          "val_hr20": 0.0216,
+          "val_ndcg10": 0.007,
+          "val_ndcg20": 0.0089,
+          "proj_overlap": 0.191,
+          "emb_l2": 0.7998
+        },
+        {
+          "epoch": 9,
+          "loss": 9.1638,
+          "val_hr10": 0.0158,
+          "val_hr20": 0.0251,
+          "val_ndcg10": 0.0077,
+          "val_ndcg20": 0.0101,
+          "proj_overlap": 0.1872,
+          "emb_l2": 0.8111
+        },
+        {
+          "epoch": 10,
+          "loss": 8.9482,
+          "val_hr10": 0.0166,
+          "val_hr20": 0.0277,
+          "val_ndcg10": 0.0083,
+          "val_ndcg20": 0.0111,
+          "proj_overlap": 0.1813,
+          "emb_l2": 0.8245
+        },
+        {
+          "epoch": 11,
+          "loss": 8.7228,
+          "val_hr10": 0.018,
+          "val_hr20": 0.0287,
+          "val_ndcg10": 0.0088,
+          "val_ndcg20": 0.0115,
+          "proj_overlap": 0.1797,
+          "emb_l2": 0.8399
+        },
+        {
+          "epoch": 12,
+          "loss": 8.5084,
+          "val_hr10": 0.0186,
+          "val_hr20": 0.0292,
+          "val_ndcg10": 0.0093,
+          "val_ndcg20": 0.012,
+          "proj_overlap": 0.1804,
+          "emb_l2": 0.8552
+        },
+        {
+          "epoch": 13,
+          "loss": 8.2968,
+          "val_hr10": 0.0196,
+          "val_hr20": 0.0305,
+          "val_ndcg10": 0.0099,
+          "val_ndcg20": 0.0126,
+          "proj_overlap": 0.1824,
+          "emb_l2": 0.8699
+        },
+        {
+          "epoch": 14,
+          "loss": 8.0982,
+          "val_hr10": 0.0204,
+          "val_hr20": 0.031,
+          "val_ndcg10": 0.0102,
+          "val_ndcg20": 0.0129,
+          "proj_overlap": 0.1848,
+          "emb_l2": 0.8846
+        },
+        {
+          "epoch": 15,
+          "loss": 7.9234,
+          "val_hr10": 0.0212,
+          "val_hr20": 0.0324,
+          "val_ndcg10": 0.0107,
+          "val_ndcg20": 0.0135,
+          "proj_overlap": 0.1863,
+          "emb_l2": 0.8978
+        },
+        {
+          "epoch": 16,
+          "loss": 7.7667,
+          "val_hr10": 0.0209,
+          "val_hr20": 0.0315,
+          "val_ndcg10": 0.0106,
+          "val_ndcg20": 0.0133,
+          "proj_overlap": 0.189,
+          "emb_l2": 0.9105
+        },
+        {
+          "epoch": 17,
+          "loss": 7.623,
+          "val_hr10": 0.0209,
+          "val_hr20": 0.0325,
+          "val_ndcg10": 0.011,
+          "val_ndcg20": 0.0139,
+          "proj_overlap": 0.1912,
+          "emb_l2": 0.9224
+        },
+        {
+          "epoch": 18,
+          "loss": 7.4963,
+          "val_hr10": 0.0211,
+          "val_hr20": 0.0323,
+          "val_ndcg10": 0.0106,
+          "val_ndcg20": 0.0134,
+          "proj_overlap": 0.1917,
+          "emb_l2": 0.9336
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 0.5,
+      "rows": 54746,
+      "size_mb": 6.5695,
+      "rows_over_vocab": 0.5,
+      "seed": 42,
+      "test_hr10": 0.0053,
+      "test_hr20": 0.0083,
+      "test_ndcg10": 0.0027,
+      "test_ndcg20": 0.0035,
+      "best_val_hr10": 0.0071,
+      "proj_overlap_mean": 0.1792,
+      "proj_overlap_max": 0.1792,
+      "ranks": [
+        5.751,
+        5.299
+      ],
+      "rank_sum": 11.05,
+      "rank_budget": 30,
+      "emb_l2_final": 0.6544,
+      "epochs_run": 13,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.7596,
+          "val_hr10": 0.0055,
+          "val_hr20": 0.0067,
+          "val_ndcg10": 0.003,
+          "val_ndcg20": 0.0034,
+          "proj_overlap": 0.1512,
+          "emb_l2": 0.4508
+        },
+        {
+          "epoch": 2,
+          "loss": 10.3884,
+          "val_hr10": 0.0047,
+          "val_hr20": 0.0067,
+          "val_ndcg10": 0.0026,
+          "val_ndcg20": 0.0031,
+          "proj_overlap": 0.1633,
+          "emb_l2": 0.4996
+        },
+        {
+          "epoch": 3,
+          "loss": 10.341,
+          "val_hr10": 0.0055,
+          "val_hr20": 0.007,
+          "val_ndcg10": 0.003,
+          "val_ndcg20": 0.0034,
+          "proj_overlap": 0.1682,
+          "emb_l2": 0.5192
+        },
+        {
+          "epoch": 4,
+          "loss": 10.3255,
+          "val_hr10": 0.0057,
+          "val_hr20": 0.0072,
+          "val_ndcg10": 0.0032,
+          "val_ndcg20": 0.0035,
+          "proj_overlap": 0.1664,
+          "emb_l2": 0.5358
+        },
+        {
+          "epoch": 5,
+          "loss": 10.3002,
+          "val_hr10": 0.0059,
+          "val_hr20": 0.0082,
+          "val_ndcg10": 0.0031,
+          "val_ndcg20": 0.0037,
+          "proj_overlap": 0.1611,
+          "emb_l2": 0.5554
+        },
+        {
+          "epoch": 6,
+          "loss": 10.2253,
+          "val_hr10": 0.0063,
+          "val_hr20": 0.0093,
+          "val_ndcg10": 0.0035,
+          "val_ndcg20": 0.0042,
+          "proj_overlap": 0.1831,
+          "emb_l2": 0.5769
+        },
+        {
+          "epoch": 7,
+          "loss": 10.1313,
+          "val_hr10": 0.0067,
+          "val_hr20": 0.0105,
+          "val_ndcg10": 0.0037,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1936,
+          "emb_l2": 0.5973
+        },
+        {
+          "epoch": 8,
+          "loss": 10.0496,
+          "val_hr10": 0.0068,
+          "val_hr20": 0.0108,
+          "val_ndcg10": 0.0037,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1929,
+          "emb_l2": 0.6158
+        },
+        {
+          "epoch": 9,
+          "loss": 9.972,
+          "val_hr10": 0.0067,
+          "val_hr20": 0.011,
+          "val_ndcg10": 0.0038,
+          "val_ndcg20": 0.0049,
+          "proj_overlap": 0.1879,
+          "emb_l2": 0.6342
+        },
+        {
+          "epoch": 10,
+          "loss": 9.8881,
+          "val_hr10": 0.0071,
+          "val_hr20": 0.0111,
+          "val_ndcg10": 0.0037,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1792,
+          "emb_l2": 0.6544
+        },
+        {
+          "epoch": 11,
+          "loss": 9.7973,
+          "val_hr10": 0.0069,
+          "val_hr20": 0.0112,
+          "val_ndcg10": 0.0036,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1746,
+          "emb_l2": 0.6733
+        },
+        {
+          "epoch": 12,
+          "loss": 9.7079,
+          "val_hr10": 0.0066,
+          "val_hr20": 0.0108,
+          "val_ndcg10": 0.0034,
+          "val_ndcg20": 0.0045,
+          "proj_overlap": 0.1708,
+          "emb_l2": 0.6912
+        },
+        {
+          "epoch": 13,
+          "loss": 9.6252,
+          "val_hr10": 0.0067,
+          "val_hr20": 0.0112,
+          "val_ndcg10": 0.0035,
+          "val_ndcg20": 0.0046,
+          "proj_overlap": 0.1701,
+          "emb_l2": 0.7079
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 0.5,
+      "rows": 54746,
+      "size_mb": 6.5695,
+      "rows_over_vocab": 0.5,
+      "seed": 42,
+      "test_hr10": 0.0059,
+      "test_hr20": 0.0102,
+      "test_ndcg10": 0.0029,
+      "test_ndcg20": 0.004,
+      "best_val_hr10": 0.0096,
+      "proj_overlap_mean": 0.1404,
+      "proj_overlap_max": 0.1404,
+      "ranks": [
+        6.967,
+        6.799
+      ],
+      "rank_sum": 13.766,
+      "rank_budget": 30,
+      "emb_l2_final": 0.7535,
+      "epochs_run": 20,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.7208,
+          "val_hr10": 0.0045,
+          "val_hr20": 0.0062,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.0032,
+          "proj_overlap": 0.2364,
+          "emb_l2": 0.4719
+        },
+        {
+          "epoch": 2,
+          "loss": 10.2788,
+          "val_hr10": 0.0045,
+          "val_hr20": 0.0067,
+          "val_ndcg10": 0.0021,
+          "val_ndcg20": 0.0026,
+          "proj_overlap": 0.2611,
+          "emb_l2": 0.506
+        },
+        {
+          "epoch": 3,
+          "loss": 10.1895,
+          "val_hr10": 0.0049,
+          "val_hr20": 0.0069,
+          "val_ndcg10": 0.0026,
+          "val_ndcg20": 0.0031,
+          "proj_overlap": 0.3074,
+          "emb_l2": 0.5214
+        },
+        {
+          "epoch": 4,
+          "loss": 10.1458,
+          "val_hr10": 0.0053,
+          "val_hr20": 0.0086,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.0035,
+          "proj_overlap": 0.308,
+          "emb_l2": 0.5355
+        },
+        {
+          "epoch": 5,
+          "loss": 10.0887,
+          "val_hr10": 0.0061,
+          "val_hr20": 0.0103,
+          "val_ndcg10": 0.0032,
+          "val_ndcg20": 0.0043,
+          "proj_overlap": 0.2438,
+          "emb_l2": 0.5524
+        },
+        {
+          "epoch": 6,
+          "loss": 10.0126,
+          "val_hr10": 0.0063,
+          "val_hr20": 0.0108,
+          "val_ndcg10": 0.0033,
+          "val_ndcg20": 0.0045,
+          "proj_overlap": 0.1891,
+          "emb_l2": 0.5694
+        },
+        {
+          "epoch": 7,
+          "loss": 9.9468,
+          "val_hr10": 0.0066,
+          "val_hr20": 0.0109,
+          "val_ndcg10": 0.0035,
+          "val_ndcg20": 0.0045,
+          "proj_overlap": 0.1848,
+          "emb_l2": 0.5866
+        },
+        {
+          "epoch": 8,
+          "loss": 9.8883,
+          "val_hr10": 0.007,
+          "val_hr20": 0.0123,
+          "val_ndcg10": 0.0034,
+          "val_ndcg20": 0.0047,
+          "proj_overlap": 0.1959,
+          "emb_l2": 0.6039
+        },
+        {
+          "epoch": 9,
+          "loss": 9.8209,
+          "val_hr10": 0.0073,
+          "val_hr20": 0.0126,
+          "val_ndcg10": 0.0036,
+          "val_ndcg20": 0.0049,
+          "proj_overlap": 0.1909,
+          "emb_l2": 0.6168
+        },
+        {
+          "epoch": 10,
+          "loss": 9.7477,
+          "val_hr10": 0.0079,
+          "val_hr20": 0.0131,
+          "val_ndcg10": 0.0039,
+          "val_ndcg20": 0.0052,
+          "proj_overlap": 0.1761,
+          "emb_l2": 0.6304
+        },
+        {
+          "epoch": 11,
+          "loss": 9.6724,
+          "val_hr10": 0.0085,
+          "val_hr20": 0.0139,
+          "val_ndcg10": 0.0041,
+          "val_ndcg20": 0.0055,
+          "proj_overlap": 0.1636,
+          "emb_l2": 0.6439
+        },
+        {
+          "epoch": 12,
+          "loss": 9.595,
+          "val_hr10": 0.0082,
+          "val_hr20": 0.0147,
+          "val_ndcg10": 0.0041,
+          "val_ndcg20": 0.0058,
+          "proj_overlap": 0.1573,
+          "emb_l2": 0.6587
+        },
+        {
+          "epoch": 13,
+          "loss": 9.5117,
+          "val_hr10": 0.0084,
+          "val_hr20": 0.0137,
+          "val_ndcg10": 0.0042,
+          "val_ndcg20": 0.0056,
+          "proj_overlap": 0.148,
+          "emb_l2": 0.6742
+        },
+        {
+          "epoch": 14,
+          "loss": 9.425,
+          "val_hr10": 0.009,
+          "val_hr20": 0.0146,
+          "val_ndcg10": 0.0044,
+          "val_ndcg20": 0.0059,
+          "proj_overlap": 0.1376,
+          "emb_l2": 0.6889
+        },
+        {
+          "epoch": 15,
+          "loss": 9.3406,
+          "val_hr10": 0.0088,
+          "val_hr20": 0.0143,
+          "val_ndcg10": 0.0044,
+          "val_ndcg20": 0.0058,
+          "proj_overlap": 0.1315,
+          "emb_l2": 0.7026
+        },
+        {
+          "epoch": 16,
+          "loss": 9.264,
+          "val_hr10": 0.0092,
+          "val_hr20": 0.0152,
+          "val_ndcg10": 0.0046,
+          "val_ndcg20": 0.0061,
+          "proj_overlap": 0.1307,
+          "emb_l2": 0.7157
+        },
+        {
+          "epoch": 17,
+          "loss": 9.1918,
+          "val_hr10": 0.0091,
+          "val_hr20": 0.0158,
+          "val_ndcg10": 0.0045,
+          "val_ndcg20": 0.0062,
+          "proj_overlap": 0.1328,
+          "emb_l2": 0.7283
+        },
+        {
+          "epoch": 18,
+          "loss": 9.1142,
+          "val_hr10": 0.0093,
+          "val_hr20": 0.0159,
+          "val_ndcg10": 0.0046,
+          "val_ndcg20": 0.0062,
+          "proj_overlap": 0.1372,
+          "emb_l2": 0.7411
+        },
+        {
+          "epoch": 19,
+          "loss": 9.031,
+          "val_hr10": 0.0096,
+          "val_hr20": 0.0158,
+          "val_ndcg10": 0.0048,
+          "val_ndcg20": 0.0064,
+          "proj_overlap": 0.1404,
+          "emb_l2": 0.7535
+        },
+        {
+          "epoch": 20,
+          "loss": 8.9502,
+          "val_hr10": 0.0091,
+          "val_hr20": 0.0156,
+          "val_ndcg10": 0.0044,
+          "val_ndcg20": 0.0061,
+          "proj_overlap": 0.1418,
+          "emb_l2": 0.7657
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 0.1,
+      "rows": 10949,
+      "size_mb": 1.3139,
+      "rows_over_vocab": 0.1,
+      "seed": 42,
+      "test_hr10": 0.0007,
+      "test_hr20": 0.001,
+      "test_ndcg10": 0.0003,
+      "test_ndcg20": 0.0004,
+      "best_val_hr10": 0.0013,
+      "proj_overlap_mean": 0.2113,
+      "proj_overlap_max": 0.2113,
+      "ranks": [
+        1.617,
+        1.612
+      ],
+      "rank_sum": 3.229,
+      "rank_budget": 30,
+      "emb_l2_final": 0.2782,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.8806,
+          "val_hr10": 0.0013,
+          "val_hr20": 0.0017,
+          "val_ndcg10": 0.0006,
+          "val_ndcg20": 0.0007,
+          "proj_overlap": 0.2113,
+          "emb_l2": 0.2782
+        },
+        {
+          "epoch": 2,
+          "loss": 10.7485,
+          "val_hr10": 0.0013,
+          "val_hr20": 0.0016,
+          "val_ndcg10": 0.0004,
+          "val_ndcg20": 0.0005,
+          "proj_overlap": 0.1959,
+          "emb_l2": 0.2984
+        },
+        {
+          "epoch": 3,
+          "loss": 10.7374,
+          "val_hr10": 0.0013,
+          "val_hr20": 0.0015,
+          "val_ndcg10": 0.0005,
+          "val_ndcg20": 0.0006,
+          "proj_overlap": 0.1825,
+          "emb_l2": 0.3146
+        },
+        {
+          "epoch": 4,
+          "loss": 10.7214,
+          "val_hr10": 0.0012,
+          "val_hr20": 0.0024,
+          "val_ndcg10": 0.0005,
+          "val_ndcg20": 0.0008,
+          "proj_overlap": 0.1859,
+          "emb_l2": 0.3429
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 0.1,
+      "rows": 10949,
+      "size_mb": 1.3139,
+      "rows_over_vocab": 0.1,
+      "seed": 42,
+      "test_hr10": 0.0026,
+      "test_hr20": 0.0036,
+      "test_ndcg10": 0.0014,
+      "test_ndcg20": 0.0017,
+      "best_val_hr10": 0.0038,
+      "proj_overlap_mean": 0.1483,
+      "proj_overlap_max": 0.1483,
+      "ranks": [
+        2.982,
+        2.809
+      ],
+      "rank_sum": 5.791,
+      "rank_budget": 30,
+      "emb_l2_final": 0.4036,
+      "epochs_run": 10,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.843,
+          "val_hr10": 0.0021,
+          "val_hr20": 0.0029,
+          "val_ndcg10": 0.001,
+          "val_ndcg20": 0.0012,
+          "proj_overlap": 0.2233,
+          "emb_l2": 0.2939
+        },
+        {
+          "epoch": 2,
+          "loss": 10.632,
+          "val_hr10": 0.0021,
+          "val_hr20": 0.0028,
+          "val_ndcg10": 0.0015,
+          "val_ndcg20": 0.0017,
+          "proj_overlap": 0.1947,
+          "emb_l2": 0.3191
+        },
+        {
+          "epoch": 3,
+          "loss": 10.6061,
+          "val_hr10": 0.003,
+          "val_hr20": 0.0043,
+          "val_ndcg10": 0.0016,
+          "val_ndcg20": 0.002,
+          "proj_overlap": 0.2116,
+          "emb_l2": 0.335
+        },
+        {
+          "epoch": 4,
+          "loss": 10.5944,
+          "val_hr10": 0.0031,
+          "val_hr20": 0.0044,
+          "val_ndcg10": 0.0017,
+          "val_ndcg20": 0.002,
+          "proj_overlap": 0.2587,
+          "emb_l2": 0.3505
+        },
+        {
+          "epoch": 5,
+          "loss": 10.5769,
+          "val_hr10": 0.0027,
+          "val_hr20": 0.0046,
+          "val_ndcg10": 0.0015,
+          "val_ndcg20": 0.002,
+          "proj_overlap": 0.2006,
+          "emb_l2": 0.3676
+        },
+        {
+          "epoch": 6,
+          "loss": 10.5403,
+          "val_hr10": 0.0032,
+          "val_hr20": 0.0052,
+          "val_ndcg10": 0.0019,
+          "val_ndcg20": 0.0024,
+          "proj_overlap": 0.148,
+          "emb_l2": 0.3872
+        },
+        {
+          "epoch": 7,
+          "loss": 10.5069,
+          "val_hr10": 0.0038,
+          "val_hr20": 0.0055,
+          "val_ndcg10": 0.0021,
+          "val_ndcg20": 0.0025,
+          "proj_overlap": 0.1483,
+          "emb_l2": 0.4036
+        },
+        {
+          "epoch": 8,
+          "loss": 10.4804,
+          "val_hr10": 0.0034,
+          "val_hr20": 0.0051,
+          "val_ndcg10": 0.002,
+          "val_ndcg20": 0.0024,
+          "proj_overlap": 0.1468,
+          "emb_l2": 0.4207
+        },
+        {
+          "epoch": 9,
+          "loss": 10.448,
+          "val_hr10": 0.0032,
+          "val_hr20": 0.0053,
+          "val_ndcg10": 0.0018,
+          "val_ndcg20": 0.0024,
+          "proj_overlap": 0.1393,
+          "emb_l2": 0.4391
+        },
+        {
+          "epoch": 10,
+          "loss": 10.4139,
+          "val_hr10": 0.0035,
+          "val_hr20": 0.0051,
+          "val_ndcg10": 0.0019,
+          "val_ndcg20": 0.0023,
+          "proj_overlap": 0.134,
+          "emb_l2": 0.4563
+        }
+      ]
+    }
+  ]
+}

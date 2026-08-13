@@ -1,0 +1,436 @@
+{
+  "config": {
+    "dataset": "beauty",
+    "budgets": [
+      1.0,
+      0.5,
+      0.1
+    ],
+    "emb_dim": 128,
+    "max_len": 50,
+    "heads": 2,
+    "blocks": 2,
+    "dropout": 0.2,
+    "batch": 128,
+    "lr": 0.001,
+    "epochs": 30,
+    "patience": 3,
+    "tie_io": false,
+    "runs": 1,
+    "seed": 42,
+    "only": null,
+    "out": "experiment_logs"
+  },
+  "results": [
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 1.0,
+      "seed": 42,
+      "rows": 114632,
+      "size_mb": 58.6916,
+      "rows_over_vocab": 1.0,
+      "total_vocab": 114632,
+      "test_hr10": 0.0125,
+      "test_hr20": 0.0188,
+      "test_ndcg10": 0.0066,
+      "test_ndcg20": 0.0081,
+      "best_val_ndcg10": 0.0045,
+      "emb_l2_final": 0.4871,
+      "n_params": 14839296,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.3146,
+          "val_hr10": 0.0098,
+          "val_hr20": 0.0152,
+          "val_ndcg10": 0.0045,
+          "val_ndcg20": 0.0058,
+          "emb_l2": 0.4871
+        },
+        {
+          "epoch": 2,
+          "loss": 9.1399,
+          "val_hr10": 0.0079,
+          "val_hr20": 0.0134,
+          "val_ndcg10": 0.0039,
+          "val_ndcg20": 0.0053,
+          "emb_l2": 0.599
+        },
+        {
+          "epoch": 3,
+          "loss": 7.5431,
+          "val_hr10": 0.0061,
+          "val_hr20": 0.0109,
+          "val_ndcg10": 0.0032,
+          "val_ndcg20": 0.0044,
+          "emb_l2": 0.6953
+        },
+        {
+          "epoch": 4,
+          "loss": 6.019,
+          "val_hr10": 0.0051,
+          "val_hr20": 0.0089,
+          "val_ndcg10": 0.0027,
+          "val_ndcg20": 0.0036,
+          "emb_l2": 0.7642
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 1.0,
+      "seed": 42,
+      "rows": 114632,
+      "size_mb": 58.6916,
+      "rows_over_vocab": 1.0,
+      "total_vocab": 114632,
+      "test_hr10": 0.0145,
+      "test_hr20": 0.0211,
+      "test_ndcg10": 0.0075,
+      "test_ndcg20": 0.0091,
+      "best_val_ndcg10": 0.0054,
+      "emb_l2_final": 0.5346,
+      "n_params": 14839296,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.2691,
+          "val_hr10": 0.0118,
+          "val_hr20": 0.0179,
+          "val_ndcg10": 0.0054,
+          "val_ndcg20": 0.0069,
+          "emb_l2": 0.5346
+        },
+        {
+          "epoch": 2,
+          "loss": 9.2016,
+          "val_hr10": 0.0097,
+          "val_hr20": 0.0166,
+          "val_ndcg10": 0.0048,
+          "val_ndcg20": 0.0065,
+          "emb_l2": 0.6342
+        },
+        {
+          "epoch": 3,
+          "loss": 7.7816,
+          "val_hr10": 0.0076,
+          "val_hr20": 0.014,
+          "val_ndcg10": 0.0038,
+          "val_ndcg20": 0.0053,
+          "emb_l2": 0.7215
+        },
+        {
+          "epoch": 4,
+          "loss": 6.3711,
+          "val_hr10": 0.0069,
+          "val_hr20": 0.0121,
+          "val_ndcg10": 0.0033,
+          "val_ndcg20": 0.0046,
+          "emb_l2": 0.7873
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Collisionless",
+      "budget": 1.0,
+      "seed": 42,
+      "rows": 114632,
+      "size_mb": 58.6916,
+      "rows_over_vocab": 1.0,
+      "total_vocab": 114632,
+      "test_hr10": 0.0132,
+      "test_hr20": 0.0203,
+      "test_ndcg10": 0.0067,
+      "test_ndcg20": 0.0085,
+      "best_val_ndcg10": 0.0069,
+      "emb_l2_final": 0.5407,
+      "n_params": 14839296,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.2421,
+          "val_hr10": 0.0145,
+          "val_hr20": 0.02,
+          "val_ndcg10": 0.0069,
+          "val_ndcg20": 0.0083,
+          "emb_l2": 0.5407
+        },
+        {
+          "epoch": 2,
+          "loss": 9.1937,
+          "val_hr10": 0.013,
+          "val_hr20": 0.0226,
+          "val_ndcg10": 0.0065,
+          "val_ndcg20": 0.0089,
+          "emb_l2": 0.6578
+        },
+        {
+          "epoch": 3,
+          "loss": 7.3967,
+          "val_hr10": 0.0112,
+          "val_hr20": 0.0177,
+          "val_ndcg10": 0.0058,
+          "val_ndcg20": 0.0074,
+          "emb_l2": 0.7497
+        },
+        {
+          "epoch": 4,
+          "loss": 5.4053,
+          "val_hr10": 0.0097,
+          "val_hr20": 0.0155,
+          "val_ndcg10": 0.0049,
+          "val_ndcg20": 0.0064,
+          "emb_l2": 0.8156
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 0.5,
+      "seed": 42,
+      "rows": 57342,
+      "size_mb": 29.3591,
+      "rows_over_vocab": 0.5002,
+      "total_vocab": 114632,
+      "test_hr10": 0.0076,
+      "test_hr20": 0.0131,
+      "test_ndcg10": 0.0034,
+      "test_ndcg20": 0.0048,
+      "best_val_ndcg10": 0.0024,
+      "emb_l2_final": 0.563,
+      "n_params": 7506176,
+      "epochs_run": 5,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.403,
+          "val_hr10": 0.0047,
+          "val_hr20": 0.0102,
+          "val_ndcg10": 0.0021,
+          "val_ndcg20": 0.0034,
+          "emb_l2": 0.4486
+        },
+        {
+          "epoch": 2,
+          "loss": 9.4023,
+          "val_hr10": 0.005,
+          "val_hr20": 0.0091,
+          "val_ndcg10": 0.0024,
+          "val_ndcg20": 0.0035,
+          "emb_l2": 0.563
+        },
+        {
+          "epoch": 3,
+          "loss": 8.0621,
+          "val_hr10": 0.0039,
+          "val_hr20": 0.0073,
+          "val_ndcg10": 0.0019,
+          "val_ndcg20": 0.0028,
+          "emb_l2": 0.6645
+        },
+        {
+          "epoch": 4,
+          "loss": 6.7884,
+          "val_hr10": 0.0033,
+          "val_hr20": 0.0057,
+          "val_ndcg10": 0.0017,
+          "val_ndcg20": 0.0023,
+          "emb_l2": 0.7398
+        },
+        {
+          "epoch": 5,
+          "loss": 5.977,
+          "val_hr10": 0.0033,
+          "val_hr20": 0.0055,
+          "val_ndcg10": 0.0016,
+          "val_ndcg20": 0.0021,
+          "emb_l2": 0.793
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 0.5,
+      "seed": 42,
+      "rows": 57341,
+      "size_mb": 29.3586,
+      "rows_over_vocab": 0.5002,
+      "total_vocab": 114632,
+      "test_hr10": 0.0136,
+      "test_hr20": 0.021,
+      "test_ndcg10": 0.0072,
+      "test_ndcg20": 0.009,
+      "best_val_ndcg10": 0.0055,
+      "emb_l2_final": 0.5256,
+      "n_params": 7506048,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.326,
+          "val_hr10": 0.0109,
+          "val_hr20": 0.0173,
+          "val_ndcg10": 0.0055,
+          "val_ndcg20": 0.0071,
+          "emb_l2": 0.5256
+        },
+        {
+          "epoch": 2,
+          "loss": 9.4279,
+          "val_hr10": 0.0096,
+          "val_hr20": 0.016,
+          "val_ndcg10": 0.0047,
+          "val_ndcg20": 0.0064,
+          "emb_l2": 0.6254
+        },
+        {
+          "epoch": 3,
+          "loss": 8.2782,
+          "val_hr10": 0.0076,
+          "val_hr20": 0.0133,
+          "val_ndcg10": 0.0036,
+          "val_ndcg20": 0.005,
+          "emb_l2": 0.7164
+        },
+        {
+          "epoch": 4,
+          "loss": 7.182,
+          "val_hr10": 0.0061,
+          "val_hr20": 0.0109,
+          "val_ndcg10": 0.0029,
+          "val_ndcg20": 0.0041,
+          "emb_l2": 0.785
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Non-multiplex",
+      "budget": 0.1,
+      "seed": 42,
+      "rows": 11508,
+      "size_mb": 5.8921,
+      "rows_over_vocab": 0.1004,
+      "total_vocab": 114632,
+      "test_hr10": 0.0022,
+      "test_hr20": 0.0039,
+      "test_ndcg10": 0.0009,
+      "test_ndcg20": 0.0013,
+      "best_val_ndcg10": 0.0013,
+      "emb_l2_final": 0.4717,
+      "n_params": 1639424,
+      "epochs_run": 5,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.6846,
+          "val_hr10": 0.0026,
+          "val_hr20": 0.0053,
+          "val_ndcg10": 0.0012,
+          "val_ndcg20": 0.0019,
+          "emb_l2": 0.3374
+        },
+        {
+          "epoch": 2,
+          "loss": 10.1544,
+          "val_hr10": 0.0025,
+          "val_hr20": 0.0044,
+          "val_ndcg10": 0.0013,
+          "val_ndcg20": 0.0018,
+          "emb_l2": 0.4717
+        },
+        {
+          "epoch": 3,
+          "loss": 9.6053,
+          "val_hr10": 0.0015,
+          "val_hr20": 0.003,
+          "val_ndcg10": 0.0007,
+          "val_ndcg20": 0.0011,
+          "emb_l2": 0.5873
+        },
+        {
+          "epoch": 4,
+          "loss": 9.122,
+          "val_hr10": 0.0016,
+          "val_hr20": 0.0028,
+          "val_ndcg10": 0.0007,
+          "val_ndcg20": 0.001,
+          "emb_l2": 0.6785
+        },
+        {
+          "epoch": 5,
+          "loss": 8.7683,
+          "val_hr10": 0.0011,
+          "val_hr20": 0.0021,
+          "val_ndcg10": 0.0005,
+          "val_ndcg20": 0.0008,
+          "emb_l2": 0.7471
+        }
+      ]
+    },
+    {
+      "dataset": "beauty",
+      "method": "Multiplex",
+      "budget": 0.1,
+      "seed": 42,
+      "rows": 11508,
+      "size_mb": 5.8921,
+      "rows_over_vocab": 0.1004,
+      "total_vocab": 114632,
+      "test_hr10": 0.0054,
+      "test_hr20": 0.0095,
+      "test_ndcg10": 0.0027,
+      "test_ndcg20": 0.0037,
+      "best_val_ndcg10": 0.0023,
+      "emb_l2_final": 0.3655,
+      "n_params": 1639424,
+      "epochs_run": 4,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 10.5906,
+          "val_hr10": 0.0042,
+          "val_hr20": 0.0069,
+          "val_ndcg10": 0.0023,
+          "val_ndcg20": 0.003,
+          "emb_l2": 0.3655
+        },
+        {
+          "epoch": 2,
+          "loss": 10.0898,
+          "val_hr10": 0.0035,
+          "val_hr20": 0.0066,
+          "val_ndcg10": 0.0017,
+          "val_ndcg20": 0.0025,
+          "emb_l2": 0.488
+        },
+        {
+          "epoch": 3,
+          "loss": 9.5924,
+          "val_hr10": 0.0026,
+          "val_hr20": 0.0053,
+          "val_ndcg10": 0.0011,
+          "val_ndcg20": 0.0017,
+          "emb_l2": 0.5911
+        },
+        {
+          "epoch": 4,
+          "loss": 9.2181,
+          "val_hr10": 0.0022,
+          "val_hr20": 0.0049,
+          "val_ndcg10": 0.0009,
+          "val_ndcg20": 0.0015,
+          "emb_l2": 0.661
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,10 @@
 import copy
+
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from sklearn.metrics import roc_auc_score
+from torch import nn, optim
 from torch.utils.data import DataLoader
-
 from ue import embedding_l2_mean
 
 
@@ -37,11 +36,12 @@ def train_model(
     weight_decay: float = 1e-5,
     te_loader:  DataLoader = None,
     writer            = None,
+    tb_tag:     str   = '',
 ) -> tuple:
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = nn.BCEWithLogitsLoss()
-    has_reg   = hasattr(model, "reg_loss")
+    has_reg   = hasattr(model, 'reg_loss')
 
     best_auc, best_state, no_improve = -1.0, None, 0
     history = []
@@ -62,27 +62,26 @@ def train_model(
 
         train_loss = total_loss / max(n_batches, 1)
         val_auc    = evaluate(model, va_loader, device)
-        emb_l2     = embedding_l2_mean(model.emb) if hasattr(model, "emb") else 0.0
+        emb_l2     = embedding_l2_mean(model.emb) if hasattr(model, 'emb') else 0.0
 
         row = {
-            "epoch":      epoch,
-            "train_loss": round(train_loss, 5),
-            "val_auc":    round(val_auc, 5),
-            "emb_l2_mean": round(emb_l2, 5),
+            'epoch':      epoch,
+            'train_loss': round(train_loss, 5),
+            'val_auc':    round(val_auc, 5),
+            'emb_l2_mean': round(emb_l2, 5),
         }
-        test_str = ""
+        test_str = ''
         if te_loader is not None:
-            row["test_auc"] = round(evaluate(model, te_loader, device), 5)
+            row['test_auc'] = round(evaluate(model, te_loader, device), 5)
             test_str = f"  test_auc {row['test_auc']:.4f}"
         history.append(row)
-        if writer is not None:
-            writer.add_scalar("loss/train",  train_loss, epoch)
-            writer.add_scalar("auc/val",     val_auc,    epoch)
-            writer.add_scalar("emb/l2_mean", emb_l2,     epoch)
+        if writer is not None:                   # AUC only — the rest is in JSON
+            sfx = f'/{tb_tag}' if tb_tag else ''
+            writer.add_scalar(f'auc_val{sfx}',     val_auc,    epoch)
             if te_loader is not None:
-                writer.add_scalar("auc/test_epoch", row["test_auc"], epoch)
-        print(f"    epoch {epoch:>2}: loss {train_loss:.4f}  val_auc {val_auc:.4f}"
-              f"{test_str}  emb_l2 {emb_l2:.3f}", flush=True)
+                writer.add_scalar(f'auc_test{sfx}', row['test_auc'], epoch)
+        print(f'    epoch {epoch:>2}: loss {train_loss:.4f}  val_auc {val_auc:.4f}'
+              f'{test_str}  emb_l2 {emb_l2:.3f}', flush=True)
 
         if val_auc > best_auc:
             best_auc   = val_auc

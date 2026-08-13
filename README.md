@@ -279,7 +279,84 @@ Logged per epoch, one line per experiment: `loss/train`, `auc/val`,
 Layout: `runs/<timestamp>/<dataset>/b<budget>/<method>[_r<run>]/`. Filter runs
 with the left-side box (regex), e.g. `b0.1` or `Multiplex\+DCN`.
 
+Coverage by arm: the ranking arm (run.py) and the GTS arm (candgen_gts.py)
+write TensorBoard live; candgen.py and sasrec_run.py log the same per-epoch
+scalars into their JSONs — convert any log with
+
+```
+python tb_export.py                    # all experiment_logs/*.json -> runs/
+python tb_export.py experiment_logs/20260717_*.json --force
+```
+
+Tags are `<metric>/<experiment>/b<budget>`, so each card holds exactly one
+experiment's methods — never more curves than the sweep has methods. Kept
+metrics: `auc_val`/`auc_test` for the ranking arm, `ndcg10_val`,
+`ndcg100_val`, `recall100_val` for the retrieval arms. Every other scalar —
+losses, norms, overlap, other cutoffs — lives in the JSON `history[]` and the
+tables here. Runs shorter than 2 epochs (smokes) are not exported, so no
+single-point charts. Multi-seed runs are averaged into one curve per method.
+Converted runs land in `runs/<json_stem>/b<budget>/<method>/`; re-running
+skips existing dirs (`--force` overwrites).
+
 `plots/*.png` (from `plots.py`) are the static version of the same curves.
+
+## Candidate generation (two-tower retrieval) — beyond the paper
+
+The paper's theory and benchmarks cover pointwise BCE ranking only. `candgen.py`
+ports the study to the retrieval stage: a two-tower model on MovieLens-1M
+positives (ratings 4-5, ~575K pairs), user tower (user_id, gender, age,
+occupation, zip) and item tower (movie_id) drawing from ONE shared table,
+linear towers (d=30, k=32), softmax over the ~3.5K-movie catalog, HitRate@K
+with seen-items masked. Same budget base as the ranking benchmark (13,653 rows).
+
+```
+python candgen.py --budgets 1.0 0.5 0.1 --runs 5             # main table
+python candgen.py --loss sampled ...                         # in-batch sampled softmax + logQ
+python candgen.py --score cosine ...                         # normalized towers ablation
+python candgen.py --worst-init --only Multiplex ...          # orthogonalization experiment
+```
+
+Test HR@10, full softmax, 5 runs (mean ± std):
+
+| Budget | Non-multiplex | Multiplex | Collisionless |
+|---|---|---|---|
+| 1.0x | 0.0892 ± 0.0008 | 0.1144 ± 0.0003 | 0.1319 ± 0.0008 |
+| 0.5x | 0.0520 ± 0.0005 | 0.1018 ± 0.0007 | — |
+| 0.1x | 0.0185 ± 0.0000 | 0.0387 ± 0.0004 | — |
+
+Findings:
+
+1. **The multiplexing effect transfers to retrieval and is amplified.** Ordering
+   Non-multiplex < Multiplex < Collisionless holds at every budget, and the
+   multiplex advantage is x1.3 / x2.0 / x2.1 at 1.0x / 0.5x / 0.1x — versus
+   fractions of an AUC point in ranking. Retrieval is far more collision-
+   sensitive: item-id intra-collisions make items permanently indistinguishable
+   in the top-K, while per-feature tables shrink the movie table proportionally.
+2. **Weight orthogonalization transfers.** Overlap = ||A_t A_s^T||_F normalized
+   — total cross-feature leakage energy over all pairs of projection rows.
+   Calibration for full-rank 32x30 blocks: identical blocks ≈ 0.26-0.31,
+   independent random ≈ 0.183. From worst-case init (all blocks identical),
+   the collisionless control barely decouples (0.252 — no collision pressure),
+   while the shared table drives blocks down to and slightly past the random
+   baseline (0.231 -> 0.178 over 2.0x -> 0.2x) — more orthogonal than chance.
+   See plots/candgen_overlap.png.
+3. **The O(N/M) norm-growth prediction does NOT transfer to softmax — it
+   reverses.** At fixed epochs, used-row norms stay flat or shrink as the table
+   compresses (0.68 -> 0.26), while ranking BCE grew them x7.4. Reason: softmax
+   residuals sum to zero over the catalog, so gradient contributions inside a
+   shared row cancel at write time instead of accumulating; BCE has no such
+   constraint. Loss-specific behavior the paper did not cover — in particular,
+   embedding norms are NOT a usable collision-health signal for softmax
+   retrieval models.
+4. **In-batch sampled softmax + logQ is equivalent to full softmax** (every
+   cell within ±0.003), so the findings apply to the production loss directly.
+5. **Cosine scoring pins norms** (the radial gradient vanishes under
+   normalization; norms sit in a narrow band across table sizes) and slightly
+   improves HR across the board; the multiplexing pattern is unchanged.
+
+JSONs: experiment_logs/*_candgen.json. Formal derivations (gradient
+decomposition for softmax losses, the annihilation condition, the rank budget,
+norm dynamics): [THEORY.md](THEORY.md).
 
 ## Files
 
@@ -296,4 +373,6 @@ report.py      markdown results table with diff vs the paper's Table 1
 plots.py       PNG figures from a run JSON (tradeoff, norms, training curves)
 orthogonality.py single-layer theory model (paper Sec. 4.2 / Fig. 2): weight
                orthogonalization vs table size
+candgen.py     two-tower retrieval study (full/sampled softmax, dot/cosine,
+               worst-init orthogonalization) — see "Candidate generation"
 ```

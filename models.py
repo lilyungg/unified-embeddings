@@ -1,9 +1,10 @@
 import torch
-import torch.nn as nn
+from torch import nn
+
 
 class SimpleMLP(nn.Module):
     # emb_out_dim must include the dense feature width when dense is used
-    def __init__(self, emb_module: nn.Module, emb_out_dim: int):
+    def __init__(self, emb_module: nn.Module, emb_out_dim: int) -> None:
         super().__init__()
         self.emb = emb_module
         self.mlp = nn.Sequential(
@@ -19,10 +20,11 @@ class SimpleMLP(nn.Module):
 
 
 class DCNV2(nn.Module):
+    # paper defaults: no dropout, no BatchNorm in the DNN stack (App. B)
     def __init__(self, emb_module: nn.Module, emb_out_dim: int,
                  num_cross: int = 1, dnn_dims: tuple = (192,),
-                 dropout: float = 0.1, use_bn: bool = True,
-                 reg_weight: float = 1e-5):
+                 dropout: float = 0.0, use_bn: bool = False,
+                 reg_weight: float = 1e-5) -> None:
         super().__init__()
         D = emb_out_dim
         self.reg_weight = reg_weight
@@ -45,7 +47,7 @@ class DCNV2(nn.Module):
 
         self._init_weights()
 
-    def _init_weights(self):
+    def _init_weights(self) -> None:
         for p in self.cross_w: nn.init.xavier_normal_(p)
         for m in self.modules():
             if isinstance(m, nn.Linear):

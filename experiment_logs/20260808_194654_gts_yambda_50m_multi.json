@@ -1,0 +1,89 @@
+{
+  "config": {
+    "dataset": "yambda_50m",
+    "subset": "up0.001_ip0.001",
+    "positive": "like",
+    "interaction": "multi",
+    "budgets": [
+      1.0
+    ],
+    "base_levels": null,
+    "k": 32,
+    "batch": 4096,
+    "lr": 0.001,
+    "epochs": 2,
+    "patience": 0,
+    "batches_per_epoch": 300,
+    "loss": "sampled",
+    "runs": 1,
+    "seed": 42,
+    "only": "Multiplex",
+    "out": "experiment_logs",
+    "tag": "yambda_50m_multi"
+  },
+  "results": [
+    {
+      "dataset": "yambda_50m_multi",
+      "method": "Multiplex",
+      "budget": 1.0,
+      "rows": 705952,
+      "size_mb": 84.7142,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_recall10": 0.0035,
+      "test_recall50": 0.0082,
+      "test_recall100": 0.0156,
+      "test_ndcg10": 0.002,
+      "test_ndcg50": 0.0033,
+      "test_ndcg100": 0.0048,
+      "test_coverage10": 0.0,
+      "test_coverage50": 0.0001,
+      "test_coverage100": 0.0003,
+      "best_val_ndcg100": 0.0031,
+      "proj_overlap_mean": 0.194,
+      "proj_overlap_max": 0.229,
+      "ranks": [
+        1.585,
+        1.547,
+        1.563,
+        2.72
+      ],
+      "rank_sum": 7.416,
+      "rank_budget": 30,
+      "emb_l2_final": 0.2007,
+      "epochs_run": 2,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 9.126,
+          "val_recall10": 0.002,
+          "val_recall50": 0.0068,
+          "val_recall100": 0.0091,
+          "val_ndcg10": 0.0008,
+          "val_ndcg50": 0.0022,
+          "val_ndcg100": 0.0027,
+          "val_coverage10": 0.0,
+          "val_coverage50": 0.0001,
+          "val_coverage100": 0.0002,
+          "proj_overlap": 0.1942,
+          "emb_l2": 0.1814
+        },
+        {
+          "epoch": 2,
+          "loss": 8.6576,
+          "val_recall10": 0.002,
+          "val_recall50": 0.0073,
+          "val_recall100": 0.0118,
+          "val_ndcg10": 0.0008,
+          "val_ndcg50": 0.0023,
+          "val_ndcg100": 0.0031,
+          "val_coverage10": 0.0,
+          "val_coverage50": 0.0001,
+          "val_coverage100": 0.0003,
+          "proj_overlap": 0.194,
+          "emb_l2": 0.2007
+        }
+      ]
+    }
+  ]
+}

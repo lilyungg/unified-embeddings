@@ -1,7 +1,7 @@
-import torch
-import torch.nn as nn
-import xxhash
 import numpy as np
+import torch
+import xxhash
+from torch import nn
 
 
 def _mix64(x: np.ndarray) -> np.ndarray:
@@ -17,7 +17,7 @@ def _mix64(x: np.ndarray) -> np.ndarray:
 
 
 def prehash(values: np.ndarray, seeds: tuple, emb_levels: int,
-            feature_id: str = "") -> np.ndarray:
+            feature_id: str = '') -> np.ndarray:
     values = np.asarray(values)
     out = np.empty((len(values), len(seeds)), dtype=np.int64)
     if np.issubdtype(values.dtype, np.integer):
@@ -30,7 +30,7 @@ def prehash(values: np.ndarray, seeds: tuple, emb_levels: int,
             salted = v + ((salt + np.uint64(seed)) << np.uint64(32))
             out[:, j] = (_mix64(salted) % np.uint64(emb_levels)).astype(np.int64)
         return out
-    prefix = feature_id + ":" if feature_id else ""
+    prefix = feature_id + ':' if feature_id else ''
     for j, seed in enumerate(seeds):
         out[:, j] = np.vectorize(
             lambda v, s=seed: xxhash.xxh32(prefix + str(v), s).intdigest() % emb_levels
@@ -70,21 +70,24 @@ def preencode(df, cols: list, vocabs: dict) -> np.ndarray:
 
 
 def prehash_split(df, cols: list, levels: list) -> np.ndarray:
+    # paper §2: independent hash functions h_t per feature — same per-feature
+    # salting as prehash(), so overlapping vocabularies don't collide in sync
     parts = []
     for col, lev in zip(cols, levels):
         values = df[col].to_numpy()
+        salt = np.uint64(xxhash.xxh32(col, 0).intdigest())
         if np.issubdtype(values.dtype, np.integer):
-            hashed = (_mix64(values.astype(np.uint64))
-                      % np.uint64(lev)).astype(np.int64)
+            salted = values.astype(np.uint64) + (salt << np.uint64(32))
+            hashed = (_mix64(salted) % np.uint64(lev)).astype(np.int64)
         else:
             hashed = np.vectorize(
-                lambda v: xxhash.xxh32(str(v), 0).intdigest() % lev
+                lambda v, p=col + ':': xxhash.xxh32(p + str(v), 0).intdigest() % lev
             )(values)
         parts.append(hashed.reshape(-1, 1))
     return np.concatenate(parts, axis=1)
 
 
-def _init_embeddings(module: nn.Module):
+def _init_embeddings(module: nn.Module) -> None:
     # Keras-style init (paper is TF2): uniform(-0.05, 0.05); PyTorch default N(0,1)
     # starts embeddings ~100x too large and wastes epochs shrinking them
     for m in module.modules():
@@ -99,12 +102,12 @@ def embedding_table_stats(module: nn.Module, total_vocab: int = 0) -> dict:
             rows += m.num_embeddings
             params += m.weight.numel()
     stats = {
-        "rows": rows,
-        "params": params,
-        "size_mb": round(params * 4 / 1e6, 4),
+        'rows': rows,
+        'params': params,
+        'size_mb': round(params * 4 / 1e6, 4),
     }
     if total_vocab:
-        stats["rows_over_vocab"] = round(rows / total_vocab, 4)
+        stats['rows_over_vocab'] = round(rows / total_vocab, 4)
     return stats
 
 
@@ -119,7 +122,7 @@ def embedding_l2_mean(module: nn.Module) -> float:
 
 
 class CollisionlessEmbedding(nn.Module):
-    def __init__(self, vocab_sizes: list, emb_dim: int):
+    def __init__(self, vocab_sizes: list, emb_dim: int) -> None:
         super().__init__()
         self.embeddings = nn.ModuleList(
             [nn.Embedding(vs + 1, emb_dim) for vs in vocab_sizes]
@@ -132,7 +135,7 @@ class CollisionlessEmbedding(nn.Module):
 
 
 class NonMultiplexedEmbedding(nn.Module):
-    def __init__(self, vocab_sizes: list, total_emb_levels: int, emb_dim: int):
+    def __init__(self, vocab_sizes: list, total_emb_levels: int, emb_dim: int) -> None:
         super().__init__()
         total_vocab = sum(vocab_sizes)
         self.levels = [
@@ -149,7 +152,7 @@ class NonMultiplexedEmbedding(nn.Module):
 
 
 class UnifiedEmbedding(nn.Module):
-    def __init__(self, emb_levels: int, emb_dim: int):
+    def __init__(self, emb_levels: int, emb_dim: int) -> None:
         super().__init__()
         self.embedding = nn.Embedding(emb_levels, emb_dim)
         _init_embeddings(self)

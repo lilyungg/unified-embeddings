@@ -1,0 +1,79 @@
+{
+  "config": {
+    "dataset": "vklsvd",
+    "subset": "up0.001_ip0.001",
+    "positive": "like",
+    "interaction": "multi",
+    "budgets": [
+      1.0
+    ],
+    "base_levels": null,
+    "k": 32,
+    "batch": 4096,
+    "lr": 0.001,
+    "epochs": 1,
+    "patience": 0,
+    "batches_per_epoch": 0,
+    "loss": "full",
+    "runs": 1,
+    "seed": 42,
+    "only": "Collisionless",
+    "tb": "runs",
+    "out": "experiment_logs",
+    "ts": "20260808_211250",
+    "tag": "vklsvd_up0.001_ip0.001_like"
+  },
+  "results": [
+    {
+      "dataset": "vklsvd_up0.001_ip0.001_like",
+      "method": "Collisionless",
+      "budget": 1.0,
+      "rows": 31985,
+      "size_mb": 3.8382,
+      "rows_over_vocab": 1.0,
+      "seed": 42,
+      "test_recall10": 0.0055,
+      "test_recall50": 0.0146,
+      "test_recall100": 0.0232,
+      "test_ndcg10": 0.0045,
+      "test_ndcg50": 0.0068,
+      "test_ndcg100": 0.0085,
+      "test_coverage10": 0.0017,
+      "test_coverage50": 0.0079,
+      "test_coverage100": 0.0153,
+      "best_val_ndcg100": 0.0078,
+      "proj_overlap_mean": 0.1787,
+      "proj_overlap_max": 0.2945,
+      "ranks": [
+        1.295,
+        1.965,
+        1.995,
+        2.244,
+        1.52,
+        2.757,
+        6.264
+      ],
+      "rank_sum": 18.04,
+      "rank_budget": 30,
+      "emb_l2_final": 0.2577,
+      "epochs_run": 1,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 9.4578,
+          "val_recall10": 0.0055,
+          "val_recall50": 0.0133,
+          "val_recall100": 0.0236,
+          "val_ndcg10": 0.0034,
+          "val_ndcg50": 0.0056,
+          "val_ndcg100": 0.0078,
+          "val_coverage10": 0.0021,
+          "val_coverage50": 0.0102,
+          "val_coverage100": 0.0188,
+          "proj_overlap": 0.1787,
+          "emb_l2": 0.2577
+        }
+      ]
+    }
+  ]
+}

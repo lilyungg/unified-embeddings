@@ -10,3 +10,7 @@ datasets/
 raw/
 sweep.log
 nohup.out
+
+# TensorBoard artifacts — regenerable via tb_export.py
+runs/
+runs_archive/
