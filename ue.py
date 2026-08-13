@@ -24,7 +24,8 @@ def prehash(values: np.ndarray, seeds: tuple, emb_levels: int,
         # fast path for pre-encoded datasets: salt integer codes with the
         # feature id in the high bits, then mix (string xxhash on web-scale
         # data takes hours; this is vectorized and equally uniform)
-        salt = np.uint64(xxhash.xxh32(feature_id, 0).intdigest())
+        # .encode(): xxhash 4.x no longer accepts str; digest is unchanged
+        salt = np.uint64(xxhash.xxh32(feature_id.encode(), 0).intdigest())
         v = values.astype(np.uint64)
         for j, seed in enumerate(seeds):
             salted = v + ((salt + np.uint64(seed)) << np.uint64(32))
@@ -33,7 +34,7 @@ def prehash(values: np.ndarray, seeds: tuple, emb_levels: int,
     prefix = feature_id + ':' if feature_id else ''
     for j, seed in enumerate(seeds):
         out[:, j] = np.vectorize(
-            lambda v, s=seed: xxhash.xxh32(prefix + str(v), s).intdigest() % emb_levels
+            lambda v, s=seed: xxhash.xxh32((prefix + str(v)).encode(), s).intdigest() % emb_levels
         )(values)
     return out
 
@@ -75,13 +76,13 @@ def prehash_split(df, cols: list, levels: list) -> np.ndarray:
     parts = []
     for col, lev in zip(cols, levels):
         values = df[col].to_numpy()
-        salt = np.uint64(xxhash.xxh32(col, 0).intdigest())
+        salt = np.uint64(xxhash.xxh32(col.encode(), 0).intdigest())
         if np.issubdtype(values.dtype, np.integer):
             salted = values.astype(np.uint64) + (salt << np.uint64(32))
             hashed = (_mix64(salted) % np.uint64(lev)).astype(np.int64)
         else:
             hashed = np.vectorize(
-                lambda v, p=col + ':': xxhash.xxh32(p + str(v), 0).intdigest() % lev
+                lambda v, p=col + ':': xxhash.xxh32((p + str(v)).encode(), 0).intdigest() % lev
             )(values)
         parts.append(hashed.reshape(-1, 1))
     return np.concatenate(parts, axis=1)

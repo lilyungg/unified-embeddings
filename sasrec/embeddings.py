@@ -24,7 +24,7 @@ from ue import _mix64
 
 def _hash_codes(n: int, levels: int, feature_id: str, offset: int = 0) -> torch.Tensor:
     """Salted hash of ids [0, n) into `levels` rows, shifted by `offset`."""
-    salt = np.uint64(xxhash.xxh32(feature_id, 0).intdigest())
+    salt = np.uint64(xxhash.xxh32(feature_id.encode(), 0).intdigest())
     v = np.arange(n, dtype=np.uint64) + (salt << np.uint64(32))
     codes = (_mix64(v) % np.uint64(levels)).astype(np.int64) + offset
     return torch.from_numpy(codes)
