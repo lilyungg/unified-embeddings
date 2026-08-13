@@ -1,16 +1,13 @@
 # unified-embeddings
 
-Benchmark comparing three categorical embedding strategies for CTR prediction:
-
-- Non-multiplex: per-feature hash tables, budget split proportional to cardinality
-- Multiplex: one shared table, feature-ID salting to separate features
-- Collisionless: per-feature tables sized to exact vocabulary (upper bound)
-
-Each is paired with two architectures: a plain MLP and a full-rank DCN-V2
-(cross layers + DNN widths follow the paper's per-dataset setup). Expected ordering by AUC: Non-multiplex < Multiplex < Collisionless.
-
-Based on the Feature Multiplexing paper (https://arxiv.org/abs/2305.12102).
-
+Three categorical embedding strategies — Non-multiplex (per-feature hash
+tables, budget split by cardinality), Multiplex (one shared table, per-feature
+hash salt), Collisionless (exact vocabulary, upper bound) — replicating
+Feature Multiplexing / Unified Embedding (https://arxiv.org/abs/2305.12102)
+on CTR ranking, then extended to retrieval: two-tower candidate generation,
+SASRec, and featured runs under the dataset owners' GTS protocols.
+Per-dataset processing and traps: [DATASETS.md](DATASETS.md). Formal theory
+for the retrieval losses: [THEORY.md](THEORY.md).
 
 ## Setup
 
@@ -19,136 +16,92 @@ Python >= 3.10 (tested on 3.12). With [uv](https://docs.astral.sh/uv/):
 ```
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -r requirements.txt
-source .venv/bin/activate        # or prefix commands with .venv/bin/python
+source .venv/bin/activate
 ```
 
-(plain `python -m venv .venv && pip install -r requirements.txt` works too)
+## Data (one time)
 
-
-## Data setup (one time)
-
-MovieLens-1M — download and unzip:
+MovieLens-1M:
 
 ```
 curl -O https://files.grouplens.org/datasets/movielens/ml-1m.zip
 unzip ml-1m.zip
 ```
 
-Avazu and Criteo (paper-faithful path) — download the raw Kaggle files and run
-the one-time preparation (vocab pruning to the paper's Tables 4/5, Criteo dense
-log-normalization, Avazu hour-of-day; streaming, no full-dataset RAM spike):
+Avazu and Criteo — raw Kaggle files through the one-time preparation (vocab
+pruning to the paper's Tables 4/5, Criteo dense log-normalization, Avazu
+hour-of-day):
 
 ```
-python prepare_data.py criteo --raw train.txt   # Criteo Display Advertising Challenge
-python prepare_data.py avazu  --raw train.gz    # Avazu CTR
+python prepare_data.py criteo --raw train.txt
+python prepare_data.py avazu  --raw train.gz
 ```
 
-run.py picks up datasets/*_prepared.parquet automatically (or pass --criteo /
---avazu explicitly). Without prepared files the loaders fall back to HuggingFace
-reczoo *_x4 (different preprocessing — do not compare those numbers to the paper).
-Per-dataset details: [DATASETS.md](DATASETS.md).
+Retrieval datasets (Beauty, Steam, Gowalla, Yambda, VK-LSVD) download
+themselves into datasets/ on first use.
 
+## Running
 
-## Running experiments
-
-Results are saved to experiment_logs/ by default (one JSON per dataset + a summary).
-Pass --out to change the directory.
-
-### Sampled run (1M random rows from Avazu and Criteo, good for CPU / quick iteration)
+### Ranking (paper replication)
 
 ```
-python run.py --ml1m /path/to/ml-1m --fast
-```
-
-### Full run (complete datasets: MovieLens ~1M, Avazu ~36M, Criteo ~45M)
-
-```
-python run.py --ml1m /path/to/ml-1m
-```
-
-By default only the DCN arm trains (the paper has no MLP arm); pass `--with-mlp`
-to add it back. On a GPU server, `run_server.sh` wraps the whole Avazu/Criteo
-pipeline (download → prepare → sweep):
-
-```
-bash run_server.sh setup      # venv + deps
-bash run_server.sh download   # Criteo tarball (Avazu via Kaggle CLI — see script)
-bash run_server.sh smoke      # 1M-row sanity check
-bash run_server.sh all        # prepare + full Criteo & Avazu sweeps
-```
-
-### Single dataset
-
-```
-python run.py --ml1m /path/to/ml-1m --skip avazu criteo    # MovieLens only
-python run.py --ml1m /path/to/ml-1m --skip movielens criteo # Avazu only
-python run.py --ml1m /path/to/ml-1m --skip movielens avazu  # Criteo only
-```
-
-### All options
-
-```
---ml-labels wang (default) = Wang et al. 2021 labels (1-2 -> 0, 4-5 -> 1, 3s
-            removed; the paper's actual pipeline) | ge3 = rating >= 3 -> 1
---avazu     local Avazu file: raw train.gz/csv or prepared .parquet
---criteo    prepared Criteo .parquet (see prepare_data.py)
---skip      datasets to skip: movielens avazu criteo
---fast      1M sample from Avazu/Criteo (Criteo: head slice, keeps chronology)
---out       output directory, default experiment_logs/
---epochs    max epochs, default 30
---patience  early stopping patience on val AUC, default 5 (0 = no early stop)
---batch     batch size (per-dataset default: movielens 128, avazu/criteo 512)
---lr        learning rate (per-dataset default: movielens 1e-3, others 2e-4)
---cross     number of DCN cross layers (default: paper value per dataset)
---dnn       DNN widths, comma-separated (default: paper value per dataset)
---with-mlp  also train the plain-MLP arm (off by default; DCN only)
---workers   DataLoader workers, default 4 (raise to 8-16 on big servers)
---dropout   dropout in the DNN stack, default 0 (paper has none)
---bn        enable BatchNorm (off by default; costs ~0.5-1 AUC points)
---wd        Adam weight decay, default 1e-5
---runs      independent runs per experiment (paper uses 5), default 1
---seed      base seed, default 42
---paper-protocol  also evaluate test AUC every epoch and report best-over-epochs
---only      run only experiments whose name contains this substring
---budgets   memory budget multipliers for the embedding table, default 1.0.
-            e.g. --budgets 1.0 0.5 0.1 runs the sweep matching the paper's
-            three table-size columns; collisionless runs once at the max budget
---tb        TensorBoard log dir, default runs/ (pass "" to disable)
---dry-run   print embedding table sizes (rows, MB, share of vocab) and exit
-```
-
-### Memory budget sweep (paper Table 1 columns)
-
-The tuned MovieLens config (batch 128, lr 1e-3, no BN/dropout, uniform ±0.05
-embedding init, Wang labels) is the default — reproducing the paper's row is:
-
-```
-python run.py --ml1m ./ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1
+python run.py --ml1m ./ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1            # MovieLens sweep
 python run.py --ml1m ./ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1 --runs 5   # paper protocol, mean±std
-tensorboard --logdir runs
+python run.py --ml1m ./ml-1m --fast                                               # 1M-row Avazu/Criteo sample
+bash run_server.sh setup && bash run_server.sh all                                # full Criteo+Avazu on a GPU server
+python report.py experiment_logs/<ts>_<dataset>.json                              # table with diff vs paper Table 1
+python plots.py  experiment_logs/<ts>_movielens.json                              # tradeoff / norms / curves PNGs
+python orthogonality.py --ml1m ./ml-1m                                            # Sec. 4.2 / Fig. 2 experiment
 ```
 
-TensorBoard logs per experiment: train loss, val AUC, mean L2 norm of embedding
-rows (the paper predicts squared norms grow as O(N/M)), and final test AUC.
-Result JSONs include per-epoch history and embedding table stats
-(rows, size in MB, rows/total_vocab).
+All options: `python run.py --help` (labels, splits, architecture overrides,
+budgets, seeds, TensorBoard).
 
-## Results
+### Candidate generation (two-tower)
 
-All three public benchmarks from the paper (Table 1), DCN-V2, `--ml-labels wang`.
-The paper's ordering (Non-multiplex < Multiplex < Collisionless) and the growth of
-the multiplexing gain under compression reproduce on every dataset; absolute AUC
-sits a uniform ~0.1–1.5 points above the paper (our splits, batch, and best-val
-checkpoint selection). Per-dataset preprocessing and traps: [DATASETS.md](DATASETS.md).
+```
+python candgen.py --dataset movielens --budgets 1.0 0.5 0.1 --runs 5
+python candgen.py --dataset beauty|steam|gowalla|yambda_50m
+python candgen.py --loss sampled          # in-batch sampled softmax + logQ
+python candgen.py --score cosine
+python candgen.py --worst-init --only Multiplex
+```
 
-### MovieLens-1M — 5 runs (mean ± std), full paper protocol
+### SASRec
 
-Config: batch 128, lr 1e-3, no BatchNorm/dropout, embeddings init uniform(±0.05),
-labels per Wang et al. 2021 (ratings 1-2 → 0, 4-5 → 1, 3s removed — the paper's
-actual preprocessing pipeline), early stopping patience 5, **5 independent runs
-(mean ± std), matching the paper's protocol**:
-`--budgets 1.0 0.5 0.1 --runs 5 --only DCN` (the tuned config is the default).
-Budgets map to the paper's Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
+```
+python sasrec_run.py --dataset ml1m --budgets 1.0 0.5 0.1     # + tied baseline by default
+python sasrec_run.py --dataset ml1m --no-align-roles          # salted item_in/item_out
+```
+
+### GTS arm (features + owners' protocol: Yambda, VK-LSVD)
+
+```
+bash run_server_gts.sh setup && bash run_server_gts.sh smoke
+RUNS=5 bash run_server_gts.sh all
+python candgen_gts.py --dataset yambda_50m --interaction multi|likes|listens
+python candgen_gts.py --dataset vklsvd --subset up0.001_ip0.001 --positive like|watch
+```
+
+### TensorBoard
+
+```
+tensorboard --logdir runs
+python tb_export.py            # convert any experiment_logs/*.json to runs/
+```
+
+Tags: `<metric>/<experiment>/b<budget>` (`auc_val` for ranking,
+`ndcg10_val` / `ndcg100_val` / `recall100_val` for retrieval); multi-seed
+runs are averaged into one curve per method.
+
+## Results — ranking (paper Table 1)
+
+DCN-V2, `--ml-labels wang`. Full histories in experiment_logs/, per-dataset
+configs in [DATASETS.md](DATASETS.md).
+
+### MovieLens-1M — 5 runs (mean ± std)
+
+Budgets map to Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
 
 | Budget | Experiment | AUC (5 runs) | Paper | Diff |
 |---|---|---|---|---|
@@ -160,36 +113,12 @@ Budgets map to the paper's Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 1
 | 0.1x | Non-multiplex + DCN | 0.7712 ± 0.0008 | 0.7707 | +0.000 |
 | 0.1x | Multiplex + DCN     | 0.8263 ± 0.0006 | 0.8200 | +0.006 |
 
-MLP arm (ours, not in the paper; single run 20260712_225032): Non-multiplex
-0.8664 / 0.8387 / 0.7682, Multiplex 0.8861 / 0.8751 / 0.8264, Collisionless 0.8963
-at 1.0x / 0.5x / 0.1x.
-
-Takeaways:
-
-- Every cell within +1.5 AUC points of the paper, run-to-run std ≤ 0.0008; the
-  0.1x Non-multiplex cell matches to the 4th digit (0.7712 vs 0.7707).
-- The paper's ordering reproduces at every budget: Non-multiplex < Multiplex < Collisionless.
-- The multiplexing gain grows with compression as in the paper:
-  +1.9 / +3.5 / +5.5 AUC points at 1.0x / 0.5x / 0.1x (paper: +2.4 / +3.9 / +4.9),
-  and it dwarfs the run-to-run noise (std ≤ 0.001).
-- Embedding norms scale with compression as the paper's O(N/M) theory predicts
-  (squared L2 grows ~2.2x at 0.5x and ~7.4x at 0.1x; theory: 2x and 10x) — see
-  emb/l2_mean in TensorBoard.
-- Label pitfall: the paper's text says "rating ≥ 3 → 1", but its preprocessing
-  reference (Wang et al. 2021, DCN-V2) removes rating-3 examples and binarizes
-  1-2 vs 4-5. With the literal "≥ 3" labels every cell lands ≈3 points below the
-  paper (`--ml-labels ge3` reproduces that); with Wang labels the numbers match.
-  Details per dataset: [DATASETS.md](DATASETS.md).
-
-Regenerate this table for any run: `python report.py experiment_logs/<ts>_movielens.json`.
+MLP arm (ours, single run): Non-multiplex 0.8664 / 0.8387 / 0.7682,
+Multiplex 0.8861 / 0.8751 / 0.8264, Collisionless 0.8963.
 
 ### Criteo — full dataset, single run (A100)
 
-~45M examples, 26 categorical + 13 continuous features (log-normalized, fed to the
-cross network as in DCN-V2). Vocabulary pruned to the paper's Table 4 (160,605);
-temporal split (6 days train, day 7 → val/test). Config: 2 cross + DNN 748×2,
-emb_dim 39, batch 4096, lr 2e-4, early stopping. Budgets map to Table 1 columns:
-2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB (run `--budgets 2.0 1.0 0.2`).
+Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 
 | Budget | Experiment | AUC | Paper | Diff |
 |---|---|---|---|---|
@@ -201,22 +130,9 @@ emb_dim 39, batch 4096, lr 2e-4, early stopping. Budgets map to Table 1 columns:
 | 2.5MB  | Non-multiplex + DCN | 0.7989 | 0.7944 | +0.005 |
 | 2.5MB  | Multiplex + DCN     | 0.8082 | 0.8049 | +0.003 |
 
-- Ordering holds at every budget; the multiplexing gain grows with compression:
-  Multiplex − Non-multiplex = +0.25 / +0.32 / +0.93 points at 25 / 12.5 / 2.5 MB
-  (paper +0.22 / +0.49 / +1.05).
-- Multiplex barely degrades under 10× compression (0.8092 → 0.8082, −0.10) while
-  Non-multiplex drops (0.8067 → 0.7989, −0.78) — the paper's headline result.
-- Heavy-tailed Criteo vocabulary: the collisionless↔hash gap the paper notes shows
-  up as Non-multiplex sitting below Multiplex even at the 25MB budget.
-- Embedding norms grow with compression (Multiplex ‖e‖²: ×3.0 at 2× table
-  shrink, ×13 at 10×; O(N/M) predicts ×2 / ×10).
-
 ### Avazu — full dataset, single run (A100)
 
-~40M examples, 22 categorical features (no continuous), `hour` → hour-of-day.
-Vocabulary pruned to Table 5 (252,838); 90/10 shuffle split. Config: 1 cross +
-DNN 512×2, emb_dim 32, batch 4096, lr 2e-4. Budgets: 10.0x = 32.4MB, 1.0x =
-3.24MB, 0.1x = 324kB (`--budgets 10.0 1.0 0.1`).
+Budgets: 10.0x = 32.4MB, 1.0x = 3.24MB, 0.1x = 324kB.
 
 | Budget | Experiment | AUC | Paper | Diff |
 |---|---|---|---|---|
@@ -228,21 +144,12 @@ DNN 512×2, emb_dim 32, batch 4096, lr 2e-4. Budgets: 10.0x = 32.4MB, 1.0x =
 | 324kB  | Non-multiplex + DCN | 0.7525 | 0.7510 | +0.002 |
 | 324kB  | Multiplex + DCN     | 0.7702 | 0.7686 | +0.002 |
 
-- Multiplexing gain vs compression tracks the paper almost exactly:
-  Multiplex − Non-multiplex = +0.13 / +0.58 / +1.77 points at 32.4 / 3.24 / 0.324 MB
-  (paper +0.11 / +0.47 / +1.76).
-- Under 100× compression Multiplex loses 0.59 points (0.7761 → 0.7702) vs
-  Non-multiplex's 2.23 (0.7748 → 0.7525).
-- The 324kB configs ran the full 30 epochs without early-stopping — the paper's
-  remark that heavily compressed embeddings need more epochs to converge.
+### Weight orthogonalization (Sec. 4.2 / Fig. 2)
 
-Single run (`--runs 1`); MovieLens above shows the 5-run spread on the same
-pipeline is ≤0.0008, an order of magnitude below the multiplexing gains here.
-Regenerate: `python report.py experiment_logs/<ts>_{criteo,avazu}.json`.
+Single-layer model, worst-case init (all feature weights aligned); mean
+pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table shrinks.
 
-### Plots
-
-`python plots.py experiment_logs/<ts>_movielens.json` renders three figures into `plots/`:
+![Orthogonalization](plots/orthogonality.png)
 
 ![Parameter-accuracy tradeoff](plots/tradeoff.png)
 
@@ -250,134 +157,62 @@ Regenerate: `python report.py experiment_logs/<ts>_{criteo,avazu}.json`.
 
 ![Training curves](plots/curves.png)
 
-### Weight orthogonalization (paper Fig. 2, single-layer theory model)
+## Results — candidate generation (two-tower, full softmax)
 
-`python orthogonality.py --ml1m ./ml-1m` trains the paper's Sec. 4.2 model
-(logistic regression over multiplexed embeddings, all per-feature weights
-theta_t initialized in the SAME direction — worst case) across 8 table sizes:
+Linear towers (d=30, k=32), softmax over the full catalog, seen items masked,
+test HR@10. MovieLens: 5 runs (mean ± std); other datasets: single run.
+Collisionless runs once at the max budget.
 
-![Orthogonalization](plots/orthogonality.png)
+| Dataset | Budget | Non-multiplex | Multiplex | Collisionless |
+|---|---|---|---|---|
+| MovieLens-1M | 1.0x | 0.0892 ± 0.0008 | 0.1144 ± 0.0003 | 0.1319 ± 0.0008 |
+| | 0.5x | 0.0520 ± 0.0005 | 0.1018 ± 0.0007 | — |
+| | 0.1x | 0.0185 ± 0.0000 | 0.0387 ± 0.0004 | — |
+| Gowalla | 1.0x | 0.0396 | 0.0453 | 0.0715 |
+| | 0.5x | 0.0248 | 0.0357 | — |
+| | 0.1x | 0.0043 | 0.0089 | — |
+| Steam | 1.0x | 0.0401 | 0.0593 | 0.0591 |
+| | 0.5x | 0.0416 | 0.0595 | — |
+| | 0.1x | 0.0084 | 0.0615 | — |
+| Beauty | 1.0x | 0.0040 | 0.0081 | 0.0134 |
+| | 0.5x | 0.0053 | 0.0059 | — |
+| | 0.1x | 0.0007 | 0.0026 | — |
+| Yambda-50M (ids) | 1.0x | 0.0044 | 0.0069 | 0.0096 |
+| | 0.5x | 0.0038 | 0.0044 | — |
+| | 0.1x | 0.0000 | 0.0008 | — |
 
-- Orthogonalization confirmed: mean pairwise angle grows from 0° at init to
-  53° at M=27K and ~70-72° at M<=1.4K — smaller tables push feature weights
-  further apart, as the paper predicts (its Fig. 2 right, Criteo).
-- Embedding norms in THIS 10-epoch single-layer setup stay flat (and dip at
-  extreme compression) — the O(N/M) norm growth is confirmed in the main DCN
-  pipeline instead (squared norms x2.2 at 0.5x, x7.4 at 0.1x, trained to
-  convergence with early stopping).
+## Results — SASRec (ML-1M, leave-one-out, full catalog)
 
-### Training curves in TensorBoard
+GSASRec backbone (github.com/NonameUntitled/logq, architecture untouched),
+authors' ml1m config; only the embedding tables are swapped. Test NDCG@10 /
+HR@10, single run. aligned = one hash for item_in/item_out; tied = shared
+input/output item embeddings (no collisions, 0.5x the untied rows).
 
-```
-tensorboard --logdir runs        # open http://localhost:6006, SCALARS tab
-```
-
-Logged per epoch, one line per experiment: `loss/train`, `auc/val`,
-`emb/l2_mean`; `auc/test` (final point); `auc/test_epoch` (only with
-`--paper-protocol`).
-
-Layout: `runs/<timestamp>/<dataset>/b<budget>/<method>[_r<run>]/`. Filter runs
-with the left-side box (regex), e.g. `b0.1` or `Multiplex\+DCN`.
-
-Coverage by arm: the ranking arm (run.py) and the GTS arm (candgen_gts.py)
-write TensorBoard live; candgen.py and sasrec_run.py log the same per-epoch
-scalars into their JSONs — convert any log with
-
-```
-python tb_export.py                    # all experiment_logs/*.json -> runs/
-python tb_export.py experiment_logs/20260717_*.json --force
-```
-
-Tags are `<metric>/<experiment>/b<budget>`, so each card holds exactly one
-experiment's methods — never more curves than the sweep has methods. Kept
-metrics: `auc_val`/`auc_test` for the ranking arm, `ndcg10_val`,
-`ndcg100_val`, `recall100_val` for the retrieval arms. Every other scalar —
-losses, norms, overlap, other cutoffs — lives in the JSON `history[]` and the
-tables here. Runs shorter than 2 epochs (smokes) are not exported, so no
-single-point charts. Multi-seed runs are averaged into one curve per method.
-Converted runs land in `runs/<json_stem>/b<budget>/<method>/`; re-running
-skips existing dirs (`--force` overwrites).
-
-`plots/*.png` (from `plots.py`) are the static version of the same curves.
-
-## Candidate generation (two-tower retrieval) — beyond the paper
-
-The paper's theory and benchmarks cover pointwise BCE ranking only. `candgen.py`
-ports the study to the retrieval stage: a two-tower model on MovieLens-1M
-positives (ratings 4-5, ~575K pairs), user tower (user_id, gender, age,
-occupation, zip) and item tower (movie_id) drawing from ONE shared table,
-linear towers (d=30, k=32), softmax over the ~3.5K-movie catalog, HitRate@K
-with seen-items masked. Same budget base as the ranking benchmark (13,653 rows).
-
-```
-python candgen.py --budgets 1.0 0.5 0.1 --runs 5             # main table
-python candgen.py --loss sampled ...                         # in-batch sampled softmax + logQ
-python candgen.py --score cosine ...                         # normalized towers ablation
-python candgen.py --worst-init --only Multiplex ...          # orthogonalization experiment
-```
-
-Test HR@10, full softmax, 5 runs (mean ± std):
-
-| Budget | Non-multiplex | Multiplex | Collisionless |
+| Memory | Configuration | NDCG@10 | HR@10 |
 |---|---|---|---|
-| 1.0x | 0.0892 ± 0.0008 | 0.1144 ± 0.0003 | 0.1319 ± 0.0008 |
-| 0.5x | 0.0520 ± 0.0005 | 0.1018 ± 0.0007 | — |
-| 0.1x | 0.0185 ± 0.0000 | 0.0387 ± 0.0004 | — |
+| 3.60 MB | Collisionless (untied) | 0.1703 | 0.2892 |
+| | Multiplex | 0.1432 | 0.2442 |
+| | Multiplex (aligned) | 0.1386 | 0.2500 |
+| | Non-multiplex | 0.1252 | 0.2124 |
+| 1.85 MB | Collisionless (tied) | 0.1708 | 0.2987 |
+| | Multiplex | 0.1164 | 0.2017 |
+| | Multiplex (aligned) | 0.1090 | 0.1987 |
+| | Non-multiplex | 0.0932 | 0.1573 |
+| 0.45 MB | Multiplex | 0.0419 | 0.0732 |
+| | Multiplex (aligned) | 0.0352 | 0.0644 |
+| | Non-multiplex | 0.0275 | 0.0485 |
 
-Findings:
+## Results — GTS arm (features, owners' protocol)
 
-1. **The multiplexing effect transfers to retrieval and is amplified.** Ordering
-   Non-multiplex < Multiplex < Collisionless holds at every budget, and the
-   multiplex advantage is x1.3 / x2.0 / x2.1 at 1.0x / 0.5x / 0.1x — versus
-   fractions of an AUC point in ranking. Retrieval is far more collision-
-   sensitive: item-id intra-collisions make items permanently indistinguishable
-   in the top-K, while per-feature tables shrink the movie table proportionally.
-2. **Weight orthogonalization transfers.** Overlap = ||A_t A_s^T||_F normalized
-   — total cross-feature leakage energy over all pairs of projection rows.
-   Calibration for full-rank 32x30 blocks: identical blocks ≈ 0.26-0.31,
-   independent random ≈ 0.183. From worst-case init (all blocks identical),
-   the collisionless control barely decouples (0.252 — no collision pressure),
-   while the shared table drives blocks down to and slightly past the random
-   baseline (0.231 -> 0.178 over 2.0x -> 0.2x) — more orthogonal than chance.
-   See plots/candgen_overlap.png.
-3. **The O(N/M) norm-growth prediction does NOT transfer to softmax — it
-   reverses.** At fixed epochs, used-row norms stay flat or shrink as the table
-   compresses (0.68 -> 0.26), while ranking BCE grew them x7.4. Reason: softmax
-   residuals sum to zero over the catalog, so gradient contributions inside a
-   shared row cancel at write time instead of accumulating; BCE has no such
-   constraint. Loss-specific behavior the paper did not cover — in particular,
-   embedding norms are NOT a usable collision-health signal for softmax
-   retrieval models.
-4. **In-batch sampled softmax + logQ is equivalent to full softmax** (every
-   cell within ±0.003), so the findings apply to the production loss directly.
-5. **Cosine scoring pins norms** (the radial gradient vanishes under
-   normalization; norms sit in a narrow band across table sizes) and slightly
-   improves HR across the board; the multiplexing pattern is unchanged.
+Two-tower as above; in-batch sampled softmax + logQ; Global Temporal Split,
+top-100 over the train catalog, no seen-item masking, cold target items kept,
+recall@K = hits / min(|T|, K), macro over users; model selection on val
+NDCG@100. Deviations from the owners' code: [DATASETS.md](DATASETS.md).
+Test recall@100, 5 seeds (mean ± std).
 
-JSONs: experiment_logs/*_candgen.json. Formal derivations (gradient
-decomposition for softmax losses, the annihilation condition, the rank budget,
-norm dynamics): [THEORY.md](THEORY.md).
-
-## GTS arm — all features, owners' evaluation protocol (Yambda, VK-LSVD)
-
-`candgen_gts.py` is the multi-vocabulary arm: every usable categorical feature
-enters the towers, and evaluation follows the dataset owners' protocol
-(Global Temporal Split, top-100 over the train-item catalog, no seen-item
-masking, cold target items kept, recall@K = hits / min(|T|, K), macro over
-users; deviations from their code are listed in DATASETS.md). Vocabularies:
-Yambda multi — user_id + event_type / item_id + track-length bucket (30.4M
-events, 696K-item catalog); Yambda likes — ids only (their BPR/ALS setting);
-VK-LSVD — user_id+age+gender+geo / item_id+author_id+duration (7 vocabularies,
-the closest setup to the paper's 26-feature Criteo).
-
-```
-bash run_server_gts.sh setup && bash run_server_gts.sh smoke
-RUNS=5 bash run_server_gts.sh all
-```
-
-Test recall@100, 5 seeds (mean ± std):
-
-**Yambda-50M multi** (train on all events, targets = next-day likes)
+**Yambda-50M multi** — train on all events (listens with played_ratio ≥ 50,
+likes, dis/unlikes; 30.4M events, 696K-item catalog), targets = next-day
+likes. Towers: user_id + event_type / item_id + track-length bucket.
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -385,7 +220,8 @@ Test recall@100, 5 seeds (mean ± std):
 | 0.5x | 0.0142 ± 0.0012 | 0.0284 ± 0.0046 | — |
 | 0.1x | 0.0040 ± 0.0008 | 0.0106 ± 0.0016 | — |
 
-**Yambda-50M likes** (their default interaction)
+**Yambda-50M likes** — likes only (872K train events, 180K catalog), the
+owners' default interaction. Towers: user_id / item_id.
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -393,7 +229,11 @@ Test recall@100, 5 seeds (mean ± std):
 | 0.5x | 0.0204 ± 0.0029 | 0.0295 ± 0.0048 | — |
 | 0.1x | 0.0068 ± 0.0007 | 0.0085 ± 0.0017 | — |
 
-**VK-LSVD ur0.01_ip0.01** (positives = likes, ~4.1M train events)
+**VK-LSVD ur0.01_ip0.01** — official subsample: 1% random users x 1% most
+popular items (u=user, i=item, r=random, p=popular by train interaction
+rank); weekly GTS (train weeks 00-24, val 25, test 26); positives = likes
+(4.06M train events, 64K users, 173K-item catalog). Towers: user_id + age +
+gender + geo / item_id + author_id + duration.
 
 | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|
@@ -401,46 +241,5 @@ Test recall@100, 5 seeds (mean ± std):
 | 0.5x | 0.0203 ± 0.0003 | 0.0274 ± 0.0006 | — |
 | 0.1x | 0.0096 ± 0.0004 | 0.0196 ± 0.0005 | — |
 
-Findings:
-
-1. **The multiplex advantage grows with compression on every dataset**:
-   x1.65 / x2.00 / x2.66 (Yambda multi), x1.40 / x1.45 / x1.26 (likes),
-   x1.16 / x1.35 / x2.03 (VK-LSVD) at 1.0x / 0.5x / 0.1x; every gap is an
-   order of magnitude above seed noise.
-2. **In the 7-vocabulary regime multiplexing is nearly free at full budget**:
-   VK-LSVD Multiplex 1.0x (0.0294 ± 0.0004) matches Collisionless
-   (0.0300 ± 0.0008) within noise, and Multiplex at 10x compression equals
-   Non-multiplex at 2x (0.0196 vs 0.0203) — a 5x memory saving at equal
-   quality.
-3. **Reader overlap separates the methods**: Multiplex 0.13-0.17 vs
-   Non-multiplex/Collisionless 0.18 across datasets and budgets — the
-   orthogonalization signature, now at 5-seed resolution (gaps > 3 std).
-4. One mixed cell, reported as-is: Yambda likes at 0.1x — Multiplex wins
-   recall@100 (0.0085 vs 0.0068) but loses NDCG@100 (0.0021 vs 0.0030) and
-   recall@10; with an 872K-event signal and an 18.8K-row table, the shared
-   pool hurts the head of the ranking while still helping the tail.
-5. Training on all event types helps the headroom: Collisionless multi
-   reaches 0.0536 on a 696K catalog vs 0.0501 likes-only on a 180K catalog —
-   higher recall on a 4x harder task.
-
-JSONs: experiment_logs/20260813_*_gts_*.json (5-seed: 090758 multi,
-102949 likes, 103823 vklsvd).
-
-## Files
-
-```
-DATASETS.md    per-dataset data processing, splits, budget mapping, training notes
-prepare_data.py one-time raw Kaggle Avazu/Criteo preprocessing (paper-faithful)
-ue.py          embedding modules and prehash helpers
-models.py      SimpleMLP and DCNV2
-data.py        data loaders for MovieLens, Avazu, Criteo
-train.py       training loop with early stopping
-benchmark.py   runs 6 experiments for a single dataset
-run.py         CLI entry point
-report.py      markdown results table with diff vs the paper's Table 1
-plots.py       PNG figures from a run JSON (tradeoff, norms, training curves)
-orthogonality.py single-layer theory model (paper Sec. 4.2 / Fig. 2): weight
-               orthogonalization vs table size
-candgen.py     two-tower retrieval study (full/sampled softmax, dot/cosine,
-               worst-init orthogonalization) — see "Candidate generation"
-```
+JSONs: experiment_logs/ (5-seed GTS: 20260813_090758 multi, 20260813_102949
+likes, 20260813_103823 vklsvd).
