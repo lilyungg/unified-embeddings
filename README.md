@@ -116,7 +116,7 @@ Budgets map to Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
 MLP arm (ours, single run): Non-multiplex 0.8664 / 0.8387 / 0.7682,
 Multiplex 0.8861 / 0.8751 / 0.8264, Collisionless 0.8963.
 
-### Criteo — full dataset, single run (A100)
+### Criteo — full dataset, single run
 
 Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 
@@ -130,7 +130,7 @@ Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 | 2.5MB  | Non-multiplex + DCN | 0.7989 | 0.7944 | +0.005 |
 | 2.5MB  | Multiplex + DCN     | 0.8082 | 0.8049 | +0.003 |
 
-### Avazu — full dataset, single run (A100)
+### Avazu — full dataset, single run
 
 Budgets: 10.0x = 32.4MB, 1.0x = 3.24MB, 0.1x = 324kB.
 
