@@ -1,15 +1,8 @@
 import numpy as np
 import torch
-import xxhash
 from torch import nn
-from ue import _mix64
 
-
-def _hash_codes(n: int, levels: int, feature_id: str, offset: int = 0) -> torch.Tensor:
-    salt = np.uint64(xxhash.xxh32(feature_id.encode(), 0).intdigest())
-    v = np.arange(n, dtype=np.uint64) + (salt << np.uint64(32))
-    codes = (_mix64(v) % np.uint64(levels)).astype(np.int64) + offset
-    return torch.from_numpy(codes)
+from ue import prehash
 
 
 class MultiplexedEmbeddings(nn.Module):
@@ -19,10 +12,18 @@ class MultiplexedEmbeddings(nn.Module):
     ALIGNED_ROLES = {'item_in': 'item', 'item_out': 'item'}
 
     def __init__(self, sizes: dict, emb_dim: int, method: str, budget: float,
-                 base_levels: int = None, align_roles: bool = True) -> None:
+                 base_levels: int = None, align_roles: bool = True,
+                 probes: int = 1, combine: str = 'concat') -> None:
         super().__init__()
+        if probes > 1 and method != 'Multiplex':
+            raise ValueError('multi-probe is defined for Multiplex only')
+        if combine == 'concat' and emb_dim % probes:
+            raise ValueError('emb_dim must be divisible by probes for concat')
         self.method, self.sizes = method, sizes
-        self.align_roles = align_roles
+        self.align_roles, self.probes, self.combine = align_roles, probes, combine
+        width = emb_dim // probes if combine == 'concat' else emb_dim
+        row_scale = probes if combine == 'concat' else 1
+
         hashed = {k: v for k, v in sizes.items() if k not in self.NEVER_HASHED}
         total = sum(hashed.values())
         levels = max(1, round((base_levels or total) * budget))
@@ -30,53 +31,66 @@ class MultiplexedEmbeddings(nn.Module):
         codes, offset = {}, 0
         for name in self.NEVER_HASHED:
             if name in sizes:
-                codes[name] = torch.arange(sizes[name], dtype=torch.long) + offset
-                offset += sizes[name]
+                n = sizes[name]
+                if combine == 'concat':
+                    c = np.arange(n * probes).reshape(n, probes)
+                else:
+                    c = np.repeat(np.arange(n), probes).reshape(n, probes)
+                codes[name] = torch.from_numpy(c + offset)
+                offset += n * row_scale
         if method == 'Collisionless':
             for name, n in hashed.items():
-                codes[name] = torch.arange(n, dtype=torch.long) + offset
+                codes[name] = torch.arange(n, dtype=torch.long).reshape(n, 1) + offset
                 offset += n
             n_rows = offset
         elif method == 'Non-multiplex':
             for name, n in hashed.items():
-                lev = max(1, round(n / total * levels))
-                codes[name] = _hash_codes(n, lev, name, offset)
+                c = prehash(np.arange(n), (0,), lev := max(1, round(n / total * levels)),
+                            feature_id=name) + offset
+                codes[name] = torch.from_numpy(c)
                 offset += lev
             n_rows = offset
         elif method == 'Multiplex':
+            pool = levels * row_scale
             for name, n in hashed.items():
-                salt = (self.ALIGNED_ROLES.get(name, name) if align_roles
-                        else name)
-                codes[name] = _hash_codes(n, levels, salt, offset)
-            n_rows = offset + levels
+                salt = (self.ALIGNED_ROLES.get(name, name) if align_roles else name)
+                c = prehash(np.arange(n), tuple(range(probes)), pool,
+                            feature_id=salt) + offset
+                codes[name] = torch.from_numpy(c)
+            n_rows = offset + pool
         else:
             raise ValueError(method)
 
-        self.table = nn.Embedding(n_rows, emb_dim)
+        self.table = nn.Embedding(n_rows, width)
         nn.init.trunc_normal_(self.table.weight, std=0.02, a=-0.04, b=0.04)
         for name, c in codes.items():
             self.register_buffer(f'codes_{name}', c)
-        self.n_rows, self.emb_dim = n_rows, emb_dim
+        self.n_rows, self.emb_dim, self.width = n_rows, emb_dim, width
 
     def rows(self, name: str) -> torch.Tensor:
         return getattr(self, f'codes_{name}')
 
+    def _combine(self, e: torch.Tensor) -> torch.Tensor:
+        if self.combine == 'concat':
+            return e.reshape(*e.shape[:-2], -1)
+        return e.mean(dim=-2)
+
     def forward(self, name: str, ids: torch.Tensor) -> torch.Tensor:
-        return self.table(self.rows(name)[ids.long()])
+        return self._combine(self.table(self.rows(name)[ids.long()]))
 
     def weight_of(self, name: str) -> torch.Tensor:
-        return self.table(self.rows(name))
+        return self._combine(self.table(self.rows(name)))
 
     def stats(self) -> dict:
         total_vocab = sum(self.sizes.values())
         return {'rows': self.n_rows,
-                'size_mb': round(self.n_rows * self.emb_dim * 4 / 1e6, 4),
+                'size_mb': round(self.n_rows * self.width * 4 / 1e6, 4),
                 'rows_over_vocab': round(self.n_rows / total_vocab, 4),
                 'total_vocab': total_vocab}
 
     @torch.no_grad()
     def emb_l2(self) -> float:
-        used = torch.cat([self.rows(n) for n in self.sizes]).unique()
+        used = torch.cat([self.rows(n).flatten() for n in self.sizes]).unique()
         return self.table.weight[used].norm(dim=1).mean().item()
 
 

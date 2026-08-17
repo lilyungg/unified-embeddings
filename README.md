@@ -5,7 +5,7 @@ tables, budget split by cardinality), Multiplex (one shared table, per-feature
 hash salt), Collisionless (exact vocabulary, upper bound) — replicating
 Feature Multiplexing / Unified Embedding (https://arxiv.org/abs/2305.12102)
 on CTR ranking, then extended to retrieval: two-tower candidate generation,
-SASRec, and featured runs under the dataset owners' evaluation protocols.
+SASRec, and featured runs on Yambda / VK-LSVD under Global Temporal Split.
 Per-dataset processing and traps: [DATASETS.md](DATASETS.md). Formal theory
 for the retrieval losses: [THEORY.md](THEORY.md).
 
@@ -74,7 +74,7 @@ python sasrec_run.py --dataset ml1m --budgets 1.0 0.5 0.1     # + tied baseline 
 python sasrec_run.py --dataset ml1m --no-align-roles          # salted item_in/item_out
 ```
 
-### Yambda / VK-LSVD (features, owners' evaluation protocol)
+### Yambda / VK-LSVD
 
 ```
 bash run_server_gts.sh setup && bash run_server_gts.sh smoke
@@ -96,10 +96,7 @@ runs are averaged into one curve per method.
 
 ## Results — ranking (paper Table 1)
 
-DCN-V2, `--ml-labels wang`. Full histories in experiment_logs/, per-dataset
-configs in [DATASETS.md](DATASETS.md).
-
-### MovieLens-1M — 5 runs (mean ± std)
+### MovieLens-1M (random 80/10/10 split, 5 runs)
 
 Budgets map to Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
 
@@ -116,7 +113,7 @@ Budgets map to Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
 MLP arm (ours, single run): Non-multiplex 0.8664 / 0.8387 / 0.7682,
 Multiplex 0.8861 / 0.8751 / 0.8264, Collisionless 0.8963.
 
-### Criteo — full dataset, single run
+### Criteo (temporal split, single run)
 
 Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 
@@ -130,7 +127,7 @@ Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 | 2.5MB  | Non-multiplex + DCN | 0.7989 | 0.7944 | +0.005 |
 | 2.5MB  | Multiplex + DCN     | 0.8082 | 0.8049 | +0.003 |
 
-### Avazu — full dataset, single run
+### Avazu (90/10 shuffle split, single run)
 
 Budgets: 10.0x = 32.4MB, 1.0x = 3.24MB, 0.1x = 324kB.
 
@@ -159,14 +156,9 @@ pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table sh
 
 ## Results — candidate generation (two-tower, full softmax)
 
-Linear towers (d=30, k=32), softmax over the full catalog, seen items masked,
-test HR@10. Budget = embedding-table rows as a fraction of the total
-vocabulary: at 1.0x the hashed methods spend exactly the memory of
-Collisionless and differ only in random row assignment; 0.5x / 0.1x halve /
-decimate the rows. Collisionless has no budget knob — one exact row per value
-— so it appears once as the upper bound ("—" cells are non-existent
-configurations, not missing runs). ± std is shown where 5 seeds were run
-(MovieLens); single-run cells carry no interval.
+Test HR@10. Splits: MovieLens random 80/10/10; Beauty, Steam — leave-one-out;
+Gowalla — the LightGCN split; Yambda — temporal. MovieLens: 5 runs
+(mean ± std); other datasets: single run.
 
 | Dataset | Budget | Non-multiplex | Multiplex | Collisionless |
 |---|---|---|---|---|
@@ -188,16 +180,7 @@ configurations, not missing runs). ± std is shown where 5 seeds were run
 
 ## Results — SASRec (ML-1M, leave-one-out, full catalog)
 
-GSASRec backbone (github.com/NonameUntitled/logq, architecture untouched),
-authors' ml1m config; only the embedding tables are swapped. Test NDCG@10 /
-HR@10, single run (no intervals). Untied SASRec holds two item tables (input
-sequence and scoring head), so 3.60 MB = full untied vocabulary; tying reuses
-one table for both roles — a structural 2x compression with zero collisions —
-which is why Collisionless (tied) is the upper bound of the 1.85 MB row and
-no collisionless configuration exists below it. The tied/untied axis exists
-only here: two-tower models have no second role to tie. aligned = one hash
-for item_in/item_out (tying + collisions); default Multiplex salts them
-separately.
+Test NDCG@10 / HR@10, single run.
 
 | Memory | Configuration | NDCG@10 | HR@10 |
 |---|---|---|---|
@@ -213,15 +196,9 @@ separately.
 | | Multiplex (aligned) | 0.0352 | 0.0644 |
 | | Non-multiplex | 0.0275 | 0.0485 |
 
-## Results — Yambda and VK-LSVD (owners' evaluation protocol)
+## Results — Yambda and VK-LSVD (Global Temporal Split)
 
-Two-tower as above; in-batch sampled softmax + logQ; Global Temporal Split
-(train = past, test = a future window), top-100 over the train catalog, no
-seen-item masking, cold target items kept, recall@K = hits / min(|T|, K),
-macro over users; model selection on val NDCG@100. Budget as in the previous
-section (1.0x = the memory of Collisionless). Deviations from the owners'
-code: [DATASETS.md](DATASETS.md). Test recall@100, 5 seeds (mean ± std) in
-every cell.
+Test recall@100, 5 seeds (mean ± std).
 
 **Yambda-50M multi**
 
@@ -246,6 +223,3 @@ every cell.
 | 1.0x | 0.0253 ± 0.0008 | 0.0294 ± 0.0004 | 0.0300 ± 0.0008 |
 | 0.5x | 0.0203 ± 0.0003 | 0.0274 ± 0.0006 | — |
 | 0.1x | 0.0096 ± 0.0004 | 0.0196 ± 0.0005 | — |
-
-JSONs: experiment_logs/ (5-seed: 20260813_090758 multi, 20260813_102949
-likes, 20260813_103823 vklsvd).

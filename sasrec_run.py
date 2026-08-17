@@ -73,10 +73,14 @@ def run(method, budget, data, args, device, seed=42) -> dict:
         sizes['item_out'] = n_items + 2
 
     torch.manual_seed(seed)
+    probes = args.probes if method == 'Multiplex' else 1
     tables = MultiplexedEmbeddings(sizes, args.emb_dim, method, budget,
-                                   align_roles=args.align_roles).to(device)
+                                   align_roles=args.align_roles,
+                                   probes=probes, combine=args.combine).to(device)
     label = method + (' (aligned)' if method == 'Multiplex' and args.align_roles
                       and not args.tie_io else '')
+    if probes > 1:
+        label += f' ({probes}-probe {args.combine})'
     if args.tie_io:
         label += ' (tied)'
     model = GSASRec(num_items=n_items, sequence_length=args.max_len,
@@ -155,6 +159,10 @@ def main() -> None:
     p.add_argument('--no-align-roles', dest='align_roles', action='store_false',
                    help="salt item_in/item_out separately in Multiplex (untied rows) "
                         "instead of the paper's shared hash for shared vocabularies")
+    p.add_argument('--probes', type=int, default=1,
+                   help='hash lookups per value for Multiplex (same bytes: concat '
+                        'halves row width and doubles rows; mean reuses full rows)')
+    p.add_argument('--combine', default='concat', choices=['concat', 'mean'])
     p.add_argument('--tied-baseline', action='store_true', default=True,
                    help='also run the tied-collisionless baseline — the structured '
                         '2x compression that hashing must beat at 0.5x')
