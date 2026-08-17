@@ -180,19 +180,27 @@ Gowalla — the LightGCN split; Yambda — temporal. MovieLens: 5 runs
 
 ## Results — SASRec (ML-1M, leave-one-out, full catalog)
 
-Test NDCG@10 / HR@10, single run.
+Test NDCG@10 / HR@10. 2-probe rows: 5 runs (mean ± std); other rows: single
+run. 2-probe = two hash lookups per item at identical bytes (concat: double
+rows at half width; mean: two full-width rows averaged).
 
 | Memory | Configuration | NDCG@10 | HR@10 |
 |---|---|---|---|
-| 3.60 MB | Collisionless (untied) | 0.1703 | 0.2892 |
+| 3.60 MB | Multiplex (2-probe concat) | 0.1706 ± 0.0021 | 0.2907 ± 0.0033 |
+| | Multiplex (2-probe mean) | 0.1703 ± 0.0025 | 0.2919 ± 0.0040 |
+| | Collisionless (untied) | 0.1703 | 0.2892 |
 | | Multiplex | 0.1432 | 0.2442 |
 | | Multiplex (aligned) | 0.1386 | 0.2500 |
 | | Non-multiplex | 0.1252 | 0.2124 |
 | 1.85 MB | Collisionless (tied) | 0.1708 | 0.2987 |
+| | Multiplex (2-probe mean) | 0.1659 ± 0.0008 | 0.2866 ± 0.0024 |
+| | Multiplex (2-probe concat) | 0.1651 ± 0.0019 | 0.2849 ± 0.0037 |
 | | Multiplex | 0.1164 | 0.2017 |
 | | Multiplex (aligned) | 0.1090 | 0.1987 |
 | | Non-multiplex | 0.0932 | 0.1573 |
-| 0.45 MB | Multiplex | 0.0419 | 0.0732 |
+| 0.45 MB | Multiplex (2-probe concat) | 0.1276 ± 0.0046 | 0.2301 ± 0.0078 |
+| | Multiplex (2-probe mean) | 0.1027 ± 0.0011 | 0.1742 ± 0.0014 |
+| | Multiplex | 0.0419 | 0.0732 |
 | | Multiplex (aligned) | 0.0352 | 0.0644 |
 | | Non-multiplex | 0.0275 | 0.0485 |
 
