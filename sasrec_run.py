@@ -29,7 +29,7 @@ def build_sequences(d: dict, max_len: int):
 
 
 def eval_split(model, users, seqs, targets, extra, max_len, pad, n_items,
-               device, ks=(10, 20), chunk=256) -> dict:
+               device, ks=(10, 20, 100), chunk=256) -> dict:
     model.eval()
     us = [u for u in users if u in targets]
     hits = dict.fromkeys(ks, 0)
@@ -116,10 +116,11 @@ def run(method, budget, data, args, device, seed=42) -> dict:
         history.append({'epoch': epoch, 'loss': round(tot / nb, 4),
                         **{f'val_{k}': x for k, x in v.items()},
                         'emb_l2': round(tables.emb_l2(), 4)})
-        print(f"    epoch {epoch:>2}: loss {tot/nb:.4f}  val_ndcg10 {v['ndcg10']:.4f}"
-              f"  val_hr10 {v['hr10']:.4f}  emb_l2 {tables.emb_l2():.3f}", flush=True)
-        if v['ndcg10'] > best:
-            best, bad = v['ndcg10'], 0
+        print(f"    epoch {epoch:>2}: loss {tot/nb:.4f}  val_ndcg100 {v['ndcg100']:.4f}"
+              f"  val_ndcg10 {v['ndcg10']:.4f}  val_hr10 {v['hr10']:.4f}"
+              f"  emb_l2 {tables.emb_l2():.3f}", flush=True)
+        if v['ndcg100'] > best:
+            best, bad = v['ndcg100'], 0
             best_state = {k: t.detach().clone() for k, t in model.state_dict().items()}
         else:
             bad += 1
@@ -131,7 +132,7 @@ def run(method, budget, data, args, device, seed=42) -> dict:
     res = {'dataset': args.dataset, 'method': label, 'budget': budget,
            'align_roles': args.align_roles, 'tie_io': args.tie_io,
            'seed': seed, **st, **{f'test_{k}': v for k, v in t.items()},
-           'best_val_ndcg10': best, 'emb_l2_final': round(tables.emb_l2(), 4),
+           'best_val_ndcg100': best, 'emb_l2_final': round(tables.emb_l2(), 4),
            'n_params': sum(p.numel() for p in model.parameters()),
            'epochs_run': len(history), 'history': history}
     print(f"[{args.dataset} b={budget}] {label}: test NDCG@10 {t['ndcg10']:.4f} "
