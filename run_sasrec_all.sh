@@ -3,7 +3,7 @@ set -euo pipefail
 
 PY=${PY:-python3}
 RUNS=${RUNS:-5}
-DATASETS=${DATASETS:-ml1m beauty steam}
+DATASETS=${DATASETS:-steam}
 
 args_for() {
   case "$1" in
@@ -15,9 +15,6 @@ args_for() {
 
 for ds in $DATASETS; do
   extra=$(args_for "$ds")
-  $PY sasrec_run.py --dataset "$ds" --runs "$RUNS" --no-align-roles $extra
   $PY sasrec_run.py --dataset "$ds" --runs "$RUNS" --only Multiplex --no-align-roles \
-    --no-tied-baseline --probes 2 --combine concat $extra
-  $PY sasrec_run.py --dataset "$ds" --runs "$RUNS" --only Multiplex --no-align-roles \
-    --no-tied-baseline --probes 2 --combine mean $extra
+    --probes 2 --combine concat $extra
 done
