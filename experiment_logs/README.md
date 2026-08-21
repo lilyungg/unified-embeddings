@@ -1,6 +1,6 @@
 Experiment logs — one JSON per run per dataset.
 
-Files produced by run.py or test.py follow the naming convention:
+Files produced by train_ranking.py follow the naming convention:
   YYYYMMDD_HHMMSS_<dataset>.json
   YYYYMMDD_HHMMSS_summary.json
 

@@ -14,7 +14,8 @@
 
 ### Данные
 - Источник: `ml-1m.zip` с grouplens.org (24MB, качается однократно).
-  Loader: `load_movielens` в data.py — читает `ratings.dat` + `users.dat`.
+  Loader: `load_movielens` в dataset_utils.py — читает
+  `ratings.dat` + `users.dat`.
 - Признаки (6, все категориальные): `user_id`, `movie_id`, `gender`, `age`,
   `occupation`, `zip`. `age` в ML-1M — уже бакеты {1,18,25,35,45,50,56},
   continuous-фич нет. `movies.dat` (жанры/названия) не используется — как в статье.
@@ -29,7 +30,7 @@
   чтобы показать эффект ловушки.
 
 ### Сплит
-- Random 80/10/10 по примерам, seed 42 (`random_split` в data.py), **после**
+- Random 80/10/10 по примерам, seed 42 (`random_split` в dataset_utils.py), **после**
   фильтрации троек: ~592K / 74K / 74K. Совпадает с протоколом статьи (DCN-V2:
   «randomly split into 80/10/10»). Один юзер может быть и в train, и в test —
   стандартная CTR-постановка, у авторов так же.
@@ -47,12 +48,12 @@
 
 ### Обучение (подобранный конфиг зашит в дефолты — флаги не нужны)
 ```bash
-.venv/bin/python run.py --ml1m ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1
+.venv/bin/python train_ranking.py --config=configs/ml1m_ranking.py
 ```
 - Архитектура (из DATASET_CFG, по статье): 1 cross + DNN 192, emb_dim 30.
 - batch 128 — как в статье для ML (лучше 512); lr 1e-3 — лучше статейного 2e-4
   в нашем сетапе; **BatchNorm и dropout выключить** (в статье их нет, с ними
-  −0.5–1 п.п.); init эмбеддингов uniform(±0.05) — критично (зашито в ue.py).
+  −0.5–1 п.п.); init эмбеддингов uniform(±0.05) — критично (зашито в embeddings.py).
 - Переобучение начинается с ~6–8 эпохи; early stopping patience 5 достаточно.
   Полный свип 3 бюджета × 6 экспериментов — десятки минут на любом GPU.
 - wd=0 не меняет; глубже сеть (2 cross, DNN 256/128) — хуже.
@@ -72,8 +73,8 @@ Non-multiplex 0.7679/0.7671 · 324kB Multiplex 0.7702/0.7686, Non-multiplex
 ```bash
 # вход: сырой Kaggle train.gz (или распакованный train.csv)
 python prepare_data.py avazu --raw train.gz   # -> datasets/avazu_prepared.parquet + .vocab.json
-python run.py --ml1m ml-1m --skip movielens criteo   # подхватит prepared автоматически
-# или явно: --avazu path/to/avazu_prepared.parquet
+python train_ranking.py --config=configs/avazu_ranking.py   # подхватит prepared автоматически
+# или явно: поле avazu в конфиге
 ```
 `prepare_data.py` (двухпроходный, стриминг через polars lazy — полный датасет
 в RAM не материализуется): (1) частоты значений → пруниг словаря до Table 5
@@ -120,8 +121,8 @@ Non-multiplex 0.8058/0.7998 · 2.5MB Multiplex 0.8082/0.8049, Non-multiplex
 ```bash
 # вход: сырой Kaggle train.txt (Display Advertising Challenge, tab-separated)
 python prepare_data.py criteo --raw train.txt   # -> datasets/criteo_prepared.parquet + .vocab.json
-python run.py --ml1m ml-1m --skip movielens avazu    # подхватит prepared автоматически
-# или явно: --criteo path/to/criteo_prepared.parquet
+python train_ranking.py --config=configs/criteo_ranking.py   # подхватит prepared автоматически
+# или явно: поле criteo в конфиге
 ```
 `prepare_data.py`: пруниг словаря до Table 4 статьи (total 160,605, зашито в
 `CRITEO_VOCAB`); continuous I1–I13 нормализуются как в DCN-V2 — log(x+4) для I2,
@@ -134,17 +135,18 @@ log(x+1) для остальных (аргумент клипается сниз
 
 ### Сплит
 - Prepared-путь: темпоральный как в статье — первые 6/7 строк train, последняя
-  1/7 случайно 50/50 val/test (`temporal_split` в data.py). В Kaggle-файле нет
+  1/7 случайно 50/50 val/test (`temporal_split` в dataset_utils.py). В Kaggle-файле нет
   колонки дня, но строки хронологические — границы дней аппроксимируются долей
   строк. `--fast` берёт **головной** срез (не random), чтобы не ломать хронологию.
 
 ### Dense-путь в модели
 - `load_criteo` возвращает dense-матрицу; она конкатенируется к эмбеддингам
-  перед cross-слоем (x0 в DCN-V2 = [эмбеддинги; continuous]) — models.py
-  `forward(x, dense)`, размер входа сети = n_cat × emb_dim + 13.
+  перед cross-слоем (x0 в DCN-V2 = [эмбеддинги; continuous]) —
+  models.py `forward(x, dense)`, размер входа сети
+  = n_cat × emb_dim + 13.
 
 ### Закрытые ловушки (были TODO)
-1. ~~Continuous выброшены~~ — prepare_data.py + dense-путь в models/train/benchmark.
+1. ~~Continuous выброшены~~ — prepare_data.py + dense-путь в models.py/train_ranking.py.
 2. ~~Пруниг словаря~~ — prepare_data.py, Table 4.
 3. ~~Темпоральный сплит~~ — prepared-ветка `load_criteo` (аппроксимация по строкам).
 - Легаси-ветка reczoo x4 (только категории, random-сплит) осталась как fallback —
@@ -160,10 +162,10 @@ log(x+1) для остальных (аргумент клипается сниз
 
 ---
 
-# Ретривал-бенчмарки (арка кандгена, candgen.py / sasrec_run.py)
+# Ретривал-бенчмарки (арка кандгена, train_candgen.py / train_sasrec.py)
 
 Вне статьи: она про CTR-ранкинг, здесь мы переносим мультиплексирование на
-retrieval-лоссы. Loader — retrieval_data.py, все датасеты id-only (user_id,
+retrieval-лоссы. Loader — dataset_utils.py, все датасеты id-only (user_id,
 item_id), метрики — HR@10 / NDCG@10 по полному каталогу с маскированием
 виденных айтемов (без сэмплированных негативов, поэтому числа систематически
 ниже протоколов «100 негативов»).
@@ -222,10 +224,10 @@ val-метрика падала при падающем лоссе (0.092 → 0.
 (у Multiplex 0.160–0.164 против 0.171–0.186 у NM/CL) — воспроизводятся. Сравнивать
 абсолютные числа с бейзлайнами Яндекса (BPR/ALS/ItemKNN/SASRec) нельзя: у нас
 id-only башня, лайки без прослушиваний и своя реализация метрик. Правильный
-носитель для Yambda — SASRec-арка (`sasrec_run.py --dataset yambda_50m`), там
+носитель для Yambda — SASRec-арка (`train_sasrec.py --config=configs/yambda50m_sasrec.py`), там
 user-башня последовательная и задача «следующий день» становится осмысленной.
 
-## GTS-арка с фичами: Yambda full + VK-LSVD (candgen_gts.py) — ✅ 5 сидов (2026-08-13)
+## GTS-арка с фичами: Yambda full + VK-LSVD (train_candgen_gts.py) — ✅ 5 сидов (2026-08-13)
 
 Отдельный скрипт: все пригодные категориальные фичи в башнях (настоящий
 многословарный режим статьи) + валидация по протоколу владельцев датасета.
@@ -289,7 +291,7 @@ user-башня последовательная и задача «следую�
   вероятно, влезает и в 24GB, но prehash/обучение на 45M строк всё равно
   разумнее на большой машине.
 
-- Init эмбеддингов uniform(±0.05) зашит в ue.py — не возвращать дефолт PyTorch
+- Init эмбеддингов uniform(±0.05) зашит в embeddings.py — не возвращать дефолт PyTorch
   N(0,1), он стоит ~5 п.п. из-за гигантских стартовых норм.
 - Collisionless не зависит от бюджета — гоняется один раз при максимальном
   из `--budgets`.

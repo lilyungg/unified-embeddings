@@ -2,9 +2,6 @@
 set -euo pipefail
 
 PY=.venv/bin/python
-BATCH=4096
-RUNS=1
-WORKERS=8
 
 setup() {
   command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -37,18 +34,15 @@ prepare() {
 smoke() {
   [ -f datasets/criteo_prepared.parquet ] || {
     echo "datasets/criteo_prepared.parquet missing — run download + prepare first."; exit 1; }
-  $PY run.py --skip movielens --fast --budgets 1.0 --epochs 2 \
-    --batch $BATCH --workers $WORKERS
+  $PY train_ranking.py --config=configs/criteo_ranking_smoke.py
 }
 
 criteo() {
-  $PY run.py --skip movielens avazu --budgets 2.0 1.0 0.2 \
-    --batch $BATCH --runs $RUNS --workers $WORKERS
+  $PY train_ranking.py --config=configs/criteo_ranking.py
 }
 
 avazu() {
-  $PY run.py --skip movielens criteo --budgets 10.0 1.0 0.1 \
-    --batch $BATCH --runs $RUNS --workers $WORKERS
+  $PY train_ranking.py --config=configs/avazu_ranking.py
 }
 
 case "${1:-all}" in

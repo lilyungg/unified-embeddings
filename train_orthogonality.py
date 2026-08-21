@@ -1,34 +1,18 @@
-import argparse
 import datetime
 import json
 import pathlib
+from argparse import ArgumentParser
 
 import numpy as np
 import torch
-from benchmark import DATASET_CFG
-from data import EmbDataset, load_movielens
-from run import get_device
 from torch import nn
 from torch.utils.data import DataLoader
-from train import evaluate
-from ue import UnifiedEmbedding, prehash
 
-
-class SingleLayer(nn.Module):
-
-    def __init__(self, emb_levels: int, n_features: int, emb_dim: int, seed: int = 42) -> None:
-        super().__init__()
-        self.emb = UnifiedEmbedding(emb_levels, emb_dim)
-        self.n_features, self.emb_dim = n_features, emb_dim
-        g = torch.Generator().manual_seed(seed)
-        v = torch.randn(emb_dim, generator=g)
-        v = v / v.norm()
-        self.theta = nn.Parameter(v.repeat(n_features, 1).clone())
-        self.bias  = nn.Parameter(torch.zeros(1))
-
-    def forward(self, x: torch.Tensor, dense=None) -> torch.Tensor:
-        e = self.emb(x).view(-1, self.n_features, self.emb_dim)
-        return (e * self.theta).sum(dim=(1, 2)) + self.bias
+from dataset_utils import EmbDataset, load_movielens
+from embeddings import UnifiedEmbedding, prehash
+from eval_utils import evaluate_auc
+from models import SingleLayer
+from utils import get_device, load_config
 
 
 def theta_mean_angle_deg(theta: torch.Tensor) -> float:
@@ -45,10 +29,9 @@ def emb_l2_used(emb: UnifiedEmbedding, used_ids: np.ndarray) -> float:
         return w.norm(dim=1).mean().item()
 
 
-def run_budget(budget: float, df, labels, tr, va, device, args) -> dict:
-    base = DATASET_CFG['movielens']['emb_levels']
-    d    = DATASET_CFG['movielens']['emb_dim']
-    M    = max(1, round(base * budget))
+def run_budget(budget: float, df, labels, tr, va, device, cfg) -> dict:
+    M    = max(1, round(cfg.emb_levels * budget))
+    d    = cfg.emb_dim
     cols = df.columns
 
     hash_data = np.concatenate(
@@ -56,15 +39,15 @@ def run_budget(budget: float, df, labels, tr, va, device, args) -> dict:
     used_ids = np.unique(hash_data)
 
     tr_l = DataLoader(EmbDataset(hash_data[tr], labels[tr]),
-                      batch_size=args.batch, shuffle=True)
-    va_l = DataLoader(EmbDataset(hash_data[va], labels[va]), batch_size=args.batch)
+                      batch_size=cfg.batch, shuffle=True)
+    va_l = DataLoader(EmbDataset(hash_data[va], labels[va]), batch_size=cfg.batch)
 
     model = SingleLayer(M, len(cols), d).to(device)
-    opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    opt = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     crit = nn.BCEWithLogitsLoss()
 
     history = []
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, cfg.epochs + 1):
         model.train()
         for x, xd, y in tr_l:
             x, y = x.to(device), y.to(device)
@@ -75,7 +58,7 @@ def run_budget(budget: float, df, labels, tr, va, device, args) -> dict:
             'epoch':     epoch,
             'angle_deg': round(theta_mean_angle_deg(model.theta), 2),
             'emb_l2':    round(emb_l2_used(model.emb, used_ids), 4),
-            'val_auc':   round(evaluate(model, va_l, device), 4),
+            'val_auc':   round(evaluate_auc(model, va_l, device), 4),
         }
         history.append(row)
         print(f"  b={budget} M={M:,} epoch {epoch}: angle {row['angle_deg']:.1f}deg  "
@@ -128,28 +111,22 @@ def plot(results: list, out: pathlib.Path) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument('--ml1m',    required=True)
-    p.add_argument('--budgets', nargs='+', type=float,
-                   default=[2.0, 1.0, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01])
-    p.add_argument('--epochs',  type=int,   default=10)
-    p.add_argument('--batch',   type=int,   default=512)
-    p.add_argument('--lr',      type=float, default=1e-3)
-    p.add_argument('--out',     default='experiment_logs')
-    args = p.parse_args()
+    parser = ArgumentParser()
+    parser.add_argument('--config', type=str, required=True)
+    cfg = load_config(parser.parse_args().config)
 
     device = get_device()
-    df, _, labels, tr, va, te = load_movielens(args.ml1m)
-    print(f'device={device}  budgets={args.budgets}', flush=True)
+    df, _, labels, tr, va, te = load_movielens(cfg.ml1m)
+    print(f'device={device}  budgets={list(cfg.budgets)}', flush=True)
 
-    results = [run_budget(b, df, labels, tr, va, device, args)
-               for b in sorted(args.budgets, reverse=True)]
+    results = [run_budget(b, df, labels, tr, va, device, cfg)
+               for b in sorted(cfg.budgets, reverse=True)]
 
     ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    out_dir = pathlib.Path(args.out)
+    out_dir = pathlib.Path(cfg.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f'{ts}_orthogonality.json').write_text(
-        json.dumps({'config': vars(args), 'results': results}, indent=2))
+        json.dumps({'config': vars(cfg), 'results': results}, indent=2))
 
     pathlib.Path('plots').mkdir(exist_ok=True)
     plot(results, pathlib.Path('plots/orthogonality.png'))

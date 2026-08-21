@@ -6,8 +6,8 @@
 # transformer and the scoring path are untouched.
 import torch
 
-from .embeddings import _TableView
-from .transformer_decoder import TransformerBlock
+from embeddings import _TableView
+from transformer_decoder import TransformerBlock
 
 
 class GSASRec(torch.nn.Module):

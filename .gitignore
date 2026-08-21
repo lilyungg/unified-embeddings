@@ -1,9 +1,10 @@
-# Python env / caches
+# Python env / caches / packaging
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
 
-# Data (regenerable — see README/DATASETS.md)
+# Data (regenerable — see README/docs/DATASETS.md)
 ml-1m/
 ml-1m.zip
 datasets/
@@ -14,3 +15,6 @@ nohup.out
 # TensorBoard artifacts — regenerable via tb_export.py
 runs/
 runs_archive/
+
+# Best-model checkpoints (train_*.py) — regenerable
+checkpoints/

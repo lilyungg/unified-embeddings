@@ -6,8 +6,8 @@ hash salt), Collisionless (exact vocabulary, upper bound) — replicating
 Feature Multiplexing / Unified Embedding (https://arxiv.org/abs/2305.12102)
 on CTR ranking, then extended to retrieval: two-tower candidate generation,
 SASRec, and featured runs on Yambda / VK-LSVD under Global Temporal Split.
-Per-dataset processing and traps: [DATASETS.md](DATASETS.md). Formal theory
-for the retrieval losses: [THEORY.md](THEORY.md).
+Per-dataset processing and traps: [docs/DATASETS.md](docs/DATASETS.md). Formal
+theory for the retrieval losses: [docs/THEORY.md](docs/THEORY.md).
 
 ## Setup
 
@@ -42,45 +42,50 @@ themselves into datasets/ on first use.
 
 ## Running
 
+Every training script takes a single `--config` argument pointing to a file in
+configs/ (one per dataset x arm). Hyperparameters, budgets, method selection,
+probes and seeds live in the config file, not in CLI flags; edit or copy a
+config to change an experiment. Each run writes a JSON log to experiment_logs/
+and the best checkpoint per experiment to checkpoints/.
+
 ### Ranking (paper replication)
 
 ```
-python run.py --ml1m ./ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1            # MovieLens sweep
-python run.py --ml1m ./ml-1m --skip avazu criteo --budgets 1.0 0.5 0.1 --runs 5   # paper protocol, mean±std
-python run.py --ml1m ./ml-1m --fast                                               # 1M-row Avazu/Criteo sample
-bash run_server.sh setup && bash run_server.sh all                                # full Criteo+Avazu on a GPU server
-python report.py experiment_logs/<ts>_<dataset>.json                              # table with diff vs paper Table 1
-python plots.py  experiment_logs/<ts>_movielens.json                              # tradeoff / norms / curves PNGs
-python orthogonality.py --ml1m ./ml-1m                                            # Sec. 4.2 / Fig. 2 experiment
+python train_ranking.py --config=configs/ml1m_ranking.py
+python train_ranking.py --config=configs/ml1m_ranking.py --dry-run    # table sizes only, no training
+bash run_server.sh setup && bash run_server.sh all                    # full Criteo+Avazu on a GPU server
+python report.py experiment_logs/<ts>_<dataset>.json                  # table with diff vs paper Table 1
+python plots.py  experiment_logs/<ts>_movielens.json                  # tradeoff / norms / curves PNGs
+python train_orthogonality.py --config=configs/ml1m_orthogonality.py  # Sec. 4.2 / Fig. 2 experiment
 ```
-
-All options: `python run.py --help` (labels, splits, architecture overrides,
-budgets, seeds, TensorBoard).
 
 ### Candidate generation (two-tower)
 
 ```
-python candgen.py --dataset movielens --budgets 1.0 0.5 0.1 --runs 5
-python candgen.py --dataset beauty|steam|gowalla|yambda_50m
-python candgen.py --loss sampled          # in-batch sampled softmax + logQ
-python candgen.py --score cosine
-python candgen.py --worst-init --only Multiplex
+python train_candgen.py --config=configs/ml1m_candgen.py
+python train_candgen.py --config=configs/beauty_candgen.py            # also: steam, gowalla, yambda50m
 ```
 
 ### SASRec
 
 ```
-python sasrec_run.py --dataset ml1m --budgets 1.0 0.5 0.1     # + tied baseline by default
-python sasrec_run.py --dataset ml1m --no-align-roles          # salted item_in/item_out
+python train_sasrec.py --config=configs/ml1m_sasrec.py                # method sweep + tied baseline
+python train_sasrec.py --config=configs/ml1m_sasrec_2probe.py         # tied CL + Multiplex 2-probe concat, 5 seeds
 ```
 
 ### Yambda / VK-LSVD
 
 ```
 bash run_server_gts.sh setup && bash run_server_gts.sh smoke
-RUNS=5 bash run_server_gts.sh all
-python candgen_gts.py --dataset yambda_50m --interaction multi|likes|listens
-python candgen_gts.py --dataset vklsvd --subset up0.001_ip0.001 --positive like|watch
+bash run_server_gts.sh all
+python train_candgen_gts.py --config=configs/yambda50m_gts_multi.py   # also: _likes, _listens
+python train_candgen_gts.py --config=configs/vklsvd_gts.py
+```
+
+### Evaluating a checkpoint
+
+```
+python evaluate.py --config=configs/ml1m_sasrec.py --checkpoint=checkpoints/<name>.pt
 ```
 
 ### TensorBoard
@@ -154,55 +159,41 @@ pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table sh
 
 ![Training curves](plots/curves.png)
 
-## Results — candidate generation (two-tower, full softmax)
+## Results — SASRec (leave-one-out, full catalog)
 
-Test HR@10. Splits: MovieLens random 80/10/10; Beauty, Steam — leave-one-out;
-Gowalla — the LightGCN split; Yambda — temporal. MovieLens: 5 runs
-(mean ± std); other datasets: single run.
+Test NDCG@10 / HR@10. 2-probe = two hash lookups per item at identical bytes
+(concat: double rows at half width; mean: two full-width rows averaged).
+Baseline — tied collisionless (shared input/output item table, structural 2x
+compression).
 
-| Dataset | Budget | Non-multiplex | Multiplex | Collisionless |
-|---|---|---|---|---|
-| MovieLens-1M | 1.0x | 0.0892 ± 0.0008 | 0.1144 ± 0.0003 | 0.1319 ± 0.0008 |
-| | 0.5x | 0.0520 ± 0.0005 | 0.1018 ± 0.0007 | — |
-| | 0.1x | 0.0185 ± 0.0000 | 0.0387 ± 0.0004 | — |
-| Gowalla | 1.0x | 0.0396 | 0.0453 | 0.0715 |
-| | 0.5x | 0.0248 | 0.0357 | — |
-| | 0.1x | 0.0043 | 0.0089 | — |
-| Steam | 1.0x | 0.0401 | 0.0593 | 0.0591 |
-| | 0.5x | 0.0416 | 0.0595 | — |
-| | 0.1x | 0.0084 | 0.0615 | — |
-| Beauty | 1.0x | 0.0040 | 0.0081 | 0.0134 |
-| | 0.5x | 0.0053 | 0.0059 | — |
-| | 0.1x | 0.0007 | 0.0026 | — |
-| Yambda-50M (ids) | 1.0x | 0.0044 | 0.0069 | 0.0096 |
-| | 0.5x | 0.0038 | 0.0044 | — |
-| | 0.1x | 0.0000 | 0.0008 | — |
+### MovieLens-1M
 
-## Results — SASRec (ML-1M, leave-one-out, full catalog)
-
-Test NDCG@10 / HR@10. 2-probe rows: 5 runs (mean ± std); other rows: single
-run. 2-probe = two hash lookups per item at identical bytes (concat: double
-rows at half width; mean: two full-width rows averaged).
+2-probe rows: 5 runs (mean ± std), model selection on val NDCG@10; tied
+collisionless: single run.
 
 | Memory | Configuration | NDCG@10 | HR@10 |
 |---|---|---|---|
 | 3.60 MB | Multiplex (2-probe concat) | 0.1706 ± 0.0021 | 0.2907 ± 0.0033 |
 | | Multiplex (2-probe mean) | 0.1703 ± 0.0025 | 0.2919 ± 0.0040 |
-| | Collisionless (untied) | 0.1703 | 0.2892 |
-| | Multiplex | 0.1432 | 0.2442 |
-| | Multiplex (aligned) | 0.1386 | 0.2500 |
-| | Non-multiplex | 0.1252 | 0.2124 |
 | 1.85 MB | Collisionless (tied) | 0.1708 | 0.2987 |
 | | Multiplex (2-probe mean) | 0.1659 ± 0.0008 | 0.2866 ± 0.0024 |
 | | Multiplex (2-probe concat) | 0.1651 ± 0.0019 | 0.2849 ± 0.0037 |
-| | Multiplex | 0.1164 | 0.2017 |
-| | Multiplex (aligned) | 0.1090 | 0.1987 |
-| | Non-multiplex | 0.0932 | 0.1573 |
 | 0.45 MB | Multiplex (2-probe concat) | 0.1276 ± 0.0046 | 0.2301 ± 0.0078 |
 | | Multiplex (2-probe mean) | 0.1027 ± 0.0011 | 0.1742 ± 0.0014 |
-| | Multiplex | 0.0419 | 0.0732 |
-| | Multiplex (aligned) | 0.0352 | 0.0644 |
-| | Non-multiplex | 0.0275 | 0.0485 |
+
+### Beauty
+
+5 runs (mean ± std), model selection on val NDCG@100.
+
+| Memory | Configuration | NDCG@10 | HR@10 |
+|---|---|---|---|
+| 58.69 MB | Multiplex (2-probe concat) | 0.0239 ± 0.0003 | 0.0369 ± 0.0008 |
+| | Multiplex (2-probe mean) | 0.0237 ± 0.0003 | 0.0365 ± 0.0005 |
+| 29.36 MB | Collisionless (tied) | 0.0291 ± 0.0006 | 0.0488 ± 0.0006 |
+| | Multiplex (2-probe concat) | 0.0238 ± 0.0005 | 0.0367 ± 0.0012 |
+| | Multiplex (2-probe mean) | 0.0225 ± 0.0006 | 0.0349 ± 0.0007 |
+| 5.89 MB | Multiplex (2-probe concat) | 0.0208 ± 0.0004 | 0.0331 ± 0.0009 |
+| | Multiplex (2-probe mean) | 0.0185 ± 0.0003 | 0.0284 ± 0.0006 |
 
 ## Results — Yambda and VK-LSVD (Global Temporal Split)
 
