@@ -141,6 +141,9 @@ Budgets map to Table 1 columns: 1.0x = 1.6MB, 0.5x = 791kB, 0.1x = 158kB.
 
 MLP arm (ours, single run): Non-multiplex 0.8664 / 0.8387 / 0.7682,
 Multiplex 0.8861 / 0.8751 / 0.8264, Collisionless 0.8963.
+```
+python train_ranking.py --config=configs/ml1m_ranking.py
+```
 
 ### Criteo (temporal split, single run)
 
@@ -155,6 +158,9 @@ Budgets map to Table 1 columns: 2.0x = 25MB, 1.0x = 12.5MB, 0.2x = 2.5MB.
 | 12.5MB | Multiplex + DCN     | 0.8090 | 0.8047 | +0.004 |
 | 2.5MB  | Non-multiplex + DCN | 0.7989 | 0.7944 | +0.005 |
 | 2.5MB  | Multiplex + DCN     | 0.8082 | 0.8049 | +0.003 |
+```
+python train_ranking.py --config=configs/criteo_ranking.py
+```
 
 ### Avazu (90/10 shuffle split, single run)
 
@@ -169,11 +175,18 @@ Budgets: 10.0x = 32.4MB, 1.0x = 3.24MB, 0.1x = 324kB.
 | 3.24MB | Multiplex + DCN     | 0.7737 | 0.7718 | +0.002 |
 | 324kB  | Non-multiplex + DCN | 0.7525 | 0.7510 | +0.002 |
 | 324kB  | Multiplex + DCN     | 0.7702 | 0.7686 | +0.002 |
+```
+python train_ranking.py --config=configs/avazu_ranking.py
+```
 
 ### Weight orthogonalization (Sec. 4.2 / Fig. 2)
 
 Single-layer model, worst-case init (all feature weights aligned); mean
 pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table shrinks.
+```
+python train_orthogonality.py --config=configs/ml1m_orthogonality.py
+python plots.py experiment_logs/<ts>_movielens.json    # tradeoff / norms / curves
+```
 
 ![Orthogonalization](plots/orthogonality.png)
 
@@ -206,6 +219,10 @@ collisionless: single run.
 | 0.45 MB | Multiplex (2-probe concat) | 0.1276 ± 0.0046 | 0.2301 ± 0.0078 |
 | | Multiplex (2-probe mean) | 0.1027 ± 0.0011 | 0.1742 ± 0.0014 |
 
+```
+python train_sasrec.py --config=configs/ml1m_sasrec_2probe.py    # concat rows + tied CL; mean rows: same config with combine='mean'
+```
+
 ### Beauty
 
 5 runs (mean ± std), model selection on val NDCG@100.
@@ -220,6 +237,10 @@ collisionless: single run.
 | 5.89 MB | Multiplex (2-probe concat) | 0.0208 ± 0.0004 | 0.0331 ± 0.0009 |
 | | Multiplex (2-probe mean) | 0.0185 ± 0.0003 | 0.0284 ± 0.0006 |
 
+```
+python train_sasrec.py --config=configs/beauty_sasrec_2probe.py    # concat rows + tied CL; mean rows: same config with combine='mean'
+```
+
 ### Yambda-50M
 
 5 runs (mean ± std), model selection on val NDCG@100; equal bytes (92.39 MB).
@@ -229,6 +250,11 @@ collisionless: single run.
 | Collisionless (tied) | 0.0214 ± 0.0025 | 0.0358 ± 0.0034 | 0.0323 ± 0.0026 | 0.0919 ± 0.0035 |
 | Multiplex (2-probe concat, tied) | 0.0207 ± 0.0025 | 0.0365 ± 0.0033 | 0.0319 ± 0.0017 | 0.0936 ± 0.0025 |
 
+```
+python train_sasrec.py --config=configs/yambda50m_sasrec_tied_cl.py
+python train_sasrec.py --config=configs/yambda50m_sasrec_2probe_tied.py
+```
+
 ### VK-LSVD ur0.01_ip0.01
 
 5 runs (mean ± std), model selection on val NDCG@100; equal bytes (88.80 MB).
@@ -237,3 +263,8 @@ collisionless: single run.
 |---|---|---|---|---|
 | Collisionless (tied) | 0.0055 ± 0.0005 | 0.0102 ± 0.0009 | 0.0129 ± 0.0011 | 0.0496 ± 0.0045 |
 | Multiplex (2-probe concat, tied) | 0.0058 ± 0.0006 | 0.0106 ± 0.0008 | 0.0136 ± 0.0007 | 0.0523 ± 0.0014 |
+
+```
+python train_sasrec.py --config=configs/vklsvd_sasrec_tied_cl.py
+python train_sasrec.py --config=configs/vklsvd_sasrec_2probe_tied.py
+```
