@@ -237,31 +237,3 @@ collisionless: single run.
 |---|---|---|---|---|
 | Collisionless (tied) | 0.0055 ± 0.0005 | 0.0102 ± 0.0009 | 0.0129 ± 0.0011 | 0.0496 ± 0.0045 |
 | Multiplex (2-probe concat, tied) | 0.0058 ± 0.0006 | 0.0106 ± 0.0008 | 0.0136 ± 0.0007 | 0.0523 ± 0.0014 |
-
-## Results — Yambda and VK-LSVD (Global Temporal Split)
-
-Test recall@100, 5 seeds (mean ± std).
-
-**Yambda-50M multi**
-
-| Budget | Non-multiplex | Multiplex | Collisionless |
-|---|---|---|---|
-| 1.0x | 0.0214 ± 0.0015 | 0.0352 ± 0.0030 | 0.0536 ± 0.0025 |
-| 0.5x | 0.0142 ± 0.0012 | 0.0284 ± 0.0046 | — |
-| 0.1x | 0.0040 ± 0.0008 | 0.0106 ± 0.0016 | — |
-
-**Yambda-50M likes**
-
-| Budget | Non-multiplex | Multiplex | Collisionless |
-|---|---|---|---|
-| 1.0x | 0.0282 ± 0.0014 | 0.0395 ± 0.0033 | 0.0501 ± 0.0037 |
-| 0.5x | 0.0204 ± 0.0029 | 0.0295 ± 0.0048 | — |
-| 0.1x | 0.0068 ± 0.0007 | 0.0085 ± 0.0017 | — |
-
-**VK-LSVD ur0.01_ip0.01**
-
-| Budget | Non-multiplex | Multiplex | Collisionless |
-|---|---|---|---|
-| 1.0x | 0.0253 ± 0.0008 | 0.0294 ± 0.0004 | 0.0300 ± 0.0008 |
-| 0.5x | 0.0203 ± 0.0003 | 0.0274 ± 0.0006 | — |
-| 0.1x | 0.0096 ± 0.0004 | 0.0196 ± 0.0005 | — |
