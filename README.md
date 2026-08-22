@@ -92,7 +92,9 @@ python train_candgen.py --config=configs/beauty_candgen.py            # also: st
 
 ```
 python train_sasrec.py --config=configs/ml1m_sasrec.py                # method sweep + tied baseline
-python train_sasrec.py --config=configs/ml1m_sasrec_2probe.py         # tied CL + Multiplex 2-probe concat, 5 seeds
+python train_sasrec.py --config=configs/ml1m_sasrec_tied_cl.py        # tied collisionless, 5 seeds
+python train_sasrec.py --config=configs/ml1m_sasrec_2probe_tied.py    # tied Multiplex 2-probe concat, 5 seeds
+bash run_sasrec_all.sh                                                # the tied pair on ml1m + beauty + steam
 ```
 
 ### Yambda / VK-LSVD
@@ -181,12 +183,13 @@ pairwise angle grows 0° → 53° (M=27K) → 70-72° (M≤1.4K) as the table sh
 
 ![Training curves](plots/curves.png)
 
-## Results — SASRec (leave-one-out, full catalog)
+## Results — SASRec (full catalog)
 
-Test NDCG@10 / HR@10. 2-probe = two hash lookups per item at identical bytes
-(concat: double rows at half width; mean: two full-width rows averaged).
-Baseline — tied collisionless (shared input/output item table, structural 2x
-compression).
+2-probe = two hash lookups per item at identical bytes (concat: double rows at
+half width; mean: two full-width rows averaged). Tied = shared input/output
+item table (structural 2x compression). Splits: ML-1M, Beauty — leave-one-out;
+Yambda — temporal (target = last like of the held-out day); VK-LSVD — weekly
+temporal (target = last positive of weeks 25/26).
 
 ### MovieLens-1M
 
@@ -216,6 +219,24 @@ collisionless: single run.
 | | Multiplex (2-probe mean) | 0.0225 ± 0.0006 | 0.0349 ± 0.0007 |
 | 5.89 MB | Multiplex (2-probe concat) | 0.0208 ± 0.0004 | 0.0331 ± 0.0009 |
 | | Multiplex (2-probe mean) | 0.0185 ± 0.0003 | 0.0284 ± 0.0006 |
+
+### Yambda-50M
+
+5 runs (mean ± std), model selection on val NDCG@100; equal bytes (92.39 MB).
+
+| Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
+|---|---|---|---|---|
+| Collisionless (tied) | 0.0214 ± 0.0025 | 0.0358 ± 0.0034 | 0.0323 ± 0.0026 | 0.0919 ± 0.0035 |
+| Multiplex (2-probe concat, tied) | 0.0207 ± 0.0025 | 0.0365 ± 0.0033 | 0.0319 ± 0.0017 | 0.0936 ± 0.0025 |
+
+### VK-LSVD ur0.01_ip0.01
+
+5 runs (mean ± std), model selection on val NDCG@100; equal bytes (88.80 MB).
+
+| Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
+|---|---|---|---|---|
+| Collisionless (tied) | 0.0055 ± 0.0005 | 0.0102 ± 0.0009 | 0.0129 ± 0.0011 | 0.0496 ± 0.0045 |
+| Multiplex (2-probe concat, tied) | 0.0058 ± 0.0006 | 0.0106 ± 0.0008 | 0.0136 ± 0.0007 | 0.0523 ± 0.0014 |
 
 ## Results — Yambda and VK-LSVD (Global Temporal Split)
 
