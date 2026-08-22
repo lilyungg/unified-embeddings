@@ -9,6 +9,28 @@ SASRec, and featured runs on Yambda / VK-LSVD under Global Temporal Split.
 Per-dataset processing and traps: [docs/DATASETS.md](docs/DATASETS.md). Formal
 theory for the retrieval losses: [docs/THEORY.md](docs/THEORY.md).
 
+## Layout
+
+```
+config.py                dataclass per pipeline (ranking / candgen / candgen_gts / sasrec / orthogonality)
+configs/                 <dataset>_<pipeline>[_variant].py — one file = one experiment
+embeddings.py            all embedding storage strategies + hashing (prehash)
+models.py                networks: DCNV2 / MLP (ranking), TwoTower (candgen), TwoTowerFeat (GTS), SingleLayer
+gsasrec.py               SASRec model (vendored from the logq repository)
+transformer_decoder.py   SASRec attention blocks (same source)
+dataset_utils.py         all data loaders
+eval_utils.py            all metrics (evaluate_auc — ranking, eval_split — SASRec, ...)
+train_ranking.py         CTR ranking (paper replication)
+train_candgen.py         two-tower candidate generation
+train_candgen_gts.py     featured two-tower on Yambda / VK-LSVD (temporal split)
+train_sasrec.py          SASRec
+train_orthogonality.py   Sec. 4.2 orthogonalization experiment
+evaluate.py              evaluate a saved checkpoint
+prepare_data.py          one-time Avazu / Criteo preparation
+report.py / plots.py / tb_export.py    log analysis
+experiment_logs/ | checkpoints/ | runs/    JSON logs, checkpoints, TensorBoard
+```
+
 ## Setup
 
 Python >= 3.10 (tested on 3.12). With [uv](https://docs.astral.sh/uv/):
