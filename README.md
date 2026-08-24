@@ -198,52 +198,41 @@ python plots.py experiment_logs/<ts>_movielens.json    # tradeoff / norms / curv
 
 ## Results — SASRec (full catalog)
 
-2-probe = two hash lookups per item at identical bytes (concat: double rows at
-half width; mean: two full-width rows averaged). Tied = shared input/output
-item table (structural 2x compression). Splits: ML-1M, Beauty — leave-one-out;
-Yambda — temporal (target = last like of the held-out day); VK-LSVD — weekly
-temporal (target = last positive of weeks 25/26).
+2-probe concat = two hash lookups per item at identical bytes (double rows at
+half width). Tied = shared input/output item table (structural 2x compression).
+All rows: 5 runs (mean ± std), model selection on val NDCG@100. Splits: ML-1M,
+Beauty — leave-one-out; Yambda — temporal (target = last like of the held-out
+day); VK-LSVD — weekly temporal (target = last positive of weeks 25/26).
 
 ### MovieLens-1M
 
-2-probe rows: 5 runs (mean ± std), model selection on val NDCG@10; tied
-collisionless: single run.
-
-| Memory | Configuration | NDCG@10 | HR@10 |
-|---|---|---|---|
-| 3.60 MB | Multiplex (2-probe concat) | 0.1706 ± 0.0021 | 0.2907 ± 0.0033 |
-| | Multiplex (2-probe mean) | 0.1703 ± 0.0025 | 0.2919 ± 0.0040 |
-| 1.85 MB | Collisionless (tied) | 0.1708 | 0.2987 |
-| | Multiplex (2-probe mean) | 0.1659 ± 0.0008 | 0.2866 ± 0.0024 |
-| | Multiplex (2-probe concat) | 0.1651 ± 0.0019 | 0.2849 ± 0.0037 |
-| 0.45 MB | Multiplex (2-probe concat) | 0.1276 ± 0.0046 | 0.2301 ± 0.0078 |
-| | Multiplex (2-probe mean) | 0.1027 ± 0.0011 | 0.1742 ± 0.0014 |
+| Memory | Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
+|---|---|---|---|---|---|
+| 3.60 MB | Multiplex (2-probe concat) | 0.1710 ± 0.0020 | 0.2922 ± 0.0031 | 0.2443 ± 0.0015 | 0.6532 ± 0.0027 |
+| 1.85 MB | Collisionless (tied) | 0.1714 ± 0.0019 | 0.2999 ± 0.0034 | 0.2478 ± 0.0017 | 0.6739 ± 0.0028 |
+| | Multiplex (2-probe concat) | 0.1660 ± 0.0022 | 0.2854 ± 0.0042 | 0.2403 ± 0.0018 | 0.6516 ± 0.0042 |
+| 0.45 MB | Multiplex (2-probe concat) | 0.1298 ± 0.0023 | 0.2314 ± 0.0033 | 0.2004 ± 0.0024 | 0.5813 ± 0.0038 |
 
 ```
-python train_sasrec.py --config=configs/ml1m_sasrec_2probe.py    # concat rows + tied CL; mean rows: same config with combine='mean'
+python train_sasrec.py --config=configs/ml1m_sasrec_2probe.py    # 2-probe concat over budgets + tied CL baseline
 ```
 
 ### Beauty
 
-5 runs (mean ± std), model selection on val NDCG@100.
-
-| Memory | Configuration | NDCG@10 | HR@10 |
-|---|---|---|---|
-| 58.69 MB | Multiplex (2-probe concat) | 0.0239 ± 0.0003 | 0.0369 ± 0.0008 |
-| | Multiplex (2-probe mean) | 0.0237 ± 0.0003 | 0.0365 ± 0.0005 |
-| 29.36 MB | Collisionless (tied) | 0.0291 ± 0.0006 | 0.0488 ± 0.0006 |
-| | Multiplex (2-probe concat) | 0.0238 ± 0.0005 | 0.0367 ± 0.0012 |
-| | Multiplex (2-probe mean) | 0.0225 ± 0.0006 | 0.0349 ± 0.0007 |
-| 5.89 MB | Multiplex (2-probe concat) | 0.0208 ± 0.0004 | 0.0331 ± 0.0009 |
-| | Multiplex (2-probe mean) | 0.0185 ± 0.0003 | 0.0284 ± 0.0006 |
+| Memory | Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
+|---|---|---|---|---|---|
+| 58.69 MB | Multiplex (2-probe concat) | 0.0243 ± 0.0005 | 0.0370 ± 0.0010 | 0.0337 ± 0.0003 | 0.0851 ± 0.0006 |
+| 29.36 MB | Collisionless (tied) | 0.0291 ± 0.0007 | 0.0486 ± 0.0012 | 0.0443 ± 0.0007 | 0.1260 ± 0.0020 |
+| | Multiplex (2-probe concat) | 0.0241 ± 0.0004 | 0.0375 ± 0.0007 | 0.0333 ± 0.0004 | 0.0844 ± 0.0008 |
+| 5.89 MB | Multiplex (2-probe concat) | 0.0212 ± 0.0006 | 0.0336 ± 0.0009 | 0.0307 ± 0.0007 | 0.0823 ± 0.0013 |
 
 ```
-python train_sasrec.py --config=configs/beauty_sasrec_2probe.py    # concat rows + tied CL; mean rows: same config with combine='mean'
+python train_sasrec.py --config=configs/beauty_sasrec_2probe.py    # 2-probe concat over budgets + tied CL baseline
 ```
 
 ### Yambda-50M
 
-5 runs (mean ± std), model selection on val NDCG@100; equal bytes (92.39 MB).
+Equal bytes (92.39 MB).
 
 | Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
 |---|---|---|---|---|
@@ -257,7 +246,7 @@ python train_sasrec.py --config=configs/yambda50m_sasrec_2probe_tied.py
 
 ### VK-LSVD ur0.01_ip0.01
 
-5 runs (mean ± std), model selection on val NDCG@100; equal bytes (88.80 MB).
+Equal bytes (88.80 MB).
 
 | Configuration | NDCG@10 | HR@10 | NDCG@100 | HR@100 |
 |---|---|---|---|---|

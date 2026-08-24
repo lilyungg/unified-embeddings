@@ -18,3 +18,4 @@ runs_archive/
 
 # Best-model checkpoints (train_*.py) — regenerable
 checkpoints/
+.DS_Store
