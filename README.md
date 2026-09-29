@@ -4,11 +4,19 @@ Research code for studying categorical embedding compression and feature
 multiplexing in two-tower retrieval, motivated by
 [Unified Embedding: Battle-Tested Feature Representations for Web-Scale ML Systems](https://arxiv.org/abs/2305.12102).
 
-This branch contains the basic **RQ1: static retrieval with BPR** entry points:
-collisionless embeddings, six compressed embedding families, per-feature and
-multiplex layouts, and a train-only popularity baseline. It is a retrieval study,
-not an exact reproduction of the original paper's datasets or experimental grid.
-Paper results, checkpoints, research diagnostics, and job queues are not included.
+This branch contains experiment entry points for four research questions:
+
+| Folder | Question | Contents |
+| --- | --- | --- |
+| [RQ1](runs/rq1/README.md) | Quality under a fixed lookup budget | Static BPR, all embedding families, PF/MP, popularity |
+| [RQ2](runs/rq2/README.md) | Mechanism and limits of sharing | Extended PF, tower-local, gradient checks, frozen/learned readers |
+| [RQ3](runs/rq3/README.md) | Transfer across retrieval objectives | Matched BPR, sampled CE, full CE |
+| [RQ4](runs/rq4/README.md) | Transfer to sequential retrieval | Transformer history encoder with item features |
+
+This is a retrieval study, not an exact reproduction of the original paper's
+datasets or experimental grid. Each folder documents its recipes and scope.
+Paper results, checkpoints, server-specific queues, and private research notes
+are not included. Moving entry points does not change training algorithms.
 
 ## Repository layout
 
@@ -20,13 +28,16 @@ src/
   losses/                # BPR, sampled/full CE, optional feature regularisation
   metrics/               # single-target Recall and NDCG
   training/              # trainer, retrieval objective, evaluation, callbacks
+  analysis/              # gradient decomposition and reader diagnostics
 runs/
+  rq1/                   # static BPR, popularity, QR initialization control
+  rq2/                   # sharing ablations and theory experiments
+  rq3/                   # static objective comparison
+  rq4/                   # sequential BPR with item features
   retrieval/
     train.py             # common training CLI
     utils.py             # configuration, budgets, model and optimizer setup
     datasets.py          # dataset paths and default feature sets
-    popularity.py        # standalone popularity evaluation
-    qr_initialization.py # explicitly labelled QR initialization control
   <dataset>/retrieval/
     prepare_retrieval.py # one preprocessing entry point per dataset
 data/
@@ -156,16 +167,16 @@ features listed above. `--features` replaces that list in the specified order.
 
 ```bash
 # Collisionless reference.
-python runs/retrieval/train.py --dataset ml1m --model static --loss bpr --approach collisionless --seed 42 --device cuda:0
+python runs/rq1/train.py --dataset ml1m --approach collisionless --seed 42 --device cuda:0
 
 # Per-feature Hashing Trick: four lookups, 10x smaller main lookup budget.
-python runs/retrieval/train.py --dataset ml1m --model static --loss bpr --approach hashing_trick --num-hashes 4 --budget-fraction 0.1 --seed 42 --device cuda:0
+python runs/rq1/train.py --dataset ml1m --approach hashing_trick --num-hashes 4 --budget-fraction 0.1 --seed 42 --device cuda:0
 
 # Multiplex counterpart, with the same main lookup budget.
-python runs/retrieval/train.py --dataset ml1m --model static --loss bpr --approach hashing_trick --multiplex --num-hashes 4 --budget-fraction 0.1 --seed 42 --device cuda:0
+python runs/rq1/train.py --dataset ml1m --approach hashing_trick --multiplex --num-hashes 4 --budget-fraction 0.1 --seed 42 --device cuda:0
 
 # Popularity: train interaction counts, the same evaluation targets and catalog.
-python runs/retrieval/popularity.py --dataset ml1m
+python runs/rq1/popularity.py --dataset ml1m
 ```
 
 Substitute `--approach` to run other families. Use `--budget-fraction 1.0`, `0.1`,
@@ -227,7 +238,7 @@ other lookup tables. Products can have much smaller initial scale. An explicit
 variance-matched control is available and should be reported separately:
 
 ```bash
-python runs/retrieval/qr_initialization.py --dataset steam --budget-fraction 0.1 --num-hashes 4 --seed 42 --device cuda:0
+python runs/rq1/qr_initialization.py --dataset steam --budget-fraction 0.1 --num-hashes 4 --seed 42 --device cuda:0
 ```
 
 Add `--multiplex` for its shared-table counterpart. This control changes only
@@ -276,7 +287,7 @@ cheap import check. Use `--help` to verify the entry point without loading data.
 ## Outputs and reproducibility
 
 By default, runs create a new timestamped directory under
-`experiment_logs/<dataset>/retrieval/static/<method>_bpr/`. An explicit
+`experiment_logs/<dataset>/retrieval/<model>/<method>_<loss>/`. An explicit
 `--output-dir` must not already exist. Each completed run writes:
 
 - `metrics.jsonl`: training windows/epochs, validation, test, and timing.
@@ -295,8 +306,15 @@ Checkpoints are for evaluation, not exact optimizer/RNG resume. Reconstruct the
 same feature configuration and preprocessed hashes before loading weights:
 hash buffers are intentionally not serialized into the checkpoint.
 
-The common source also supports `sampled_ce`, `full_ce`, and a sequential tower.
-Their dedicated paper experiments and diagnostics are outside this branch's
-RQ1 scope. Sequential preparation is opt-in through `PREPARE_SEQUENTIAL = True`
-in the relevant preparation script. No data processing is triggered by the
-training entry point.
+RQ1/3/4 share the same training implementation in `runs/retrieval/`. RQ-specific
+entry points select a recipe; they do not introduce separate trainers. RQ2
+reuses that runtime for learned-reader and sharing experiments and has a separate
+paired SGD loop for its frozen-reader control. See each folder's README before
+comparing results: the sharing controls deliberately have unequal total budgets,
+and fixed-reader validation probes are not full-test metrics.
+
+Sequential preparation is opt-in through `PREPARE_SEQUENTIAL = True` in the
+relevant preparation script. No data processing is triggered by training.
+Historical runs used different stopping budgets (notably patience 20/5/2).
+Specify the original command's settings to reproduce an existing result; do not
+silently replace them with current defaults or pool them as a matched comparison.

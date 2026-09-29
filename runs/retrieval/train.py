@@ -10,7 +10,7 @@ from runs.retrieval.datasets import DATASETS
 from runs.retrieval.utils import APPROACH_DEFAULTS, MODEL_DEFAULTS, run
 
 
-def parse_args(argv=None):
+def parse_args(argv=None, *, model=None, loss=None):
     parser = argparse.ArgumentParser(
         description="Train a retrieval model. Defaults are defined in runs/retrieval/utils.py.",
         # Omitted options must not overwrite model- or method-specific defaults.
@@ -18,9 +18,11 @@ def parse_args(argv=None):
     )
     experiment = parser.add_argument_group("experiment")
     experiment.add_argument("--dataset", choices=DATASETS)
-    experiment.add_argument("--model", choices=MODEL_DEFAULTS)
+    if model is None:
+        experiment.add_argument("--model", choices=MODEL_DEFAULTS)
     experiment.add_argument("--approach", choices=APPROACH_DEFAULTS)
-    experiment.add_argument("--loss", choices=("bpr", "sampled_ce", "full_ce"))
+    if loss is None:
+        experiment.add_argument("--loss", choices=("bpr", "sampled_ce", "full_ce"))
     experiment.add_argument("--multiplex", action="store_true")
     experiment.add_argument(
         "--features", nargs="+",
@@ -61,6 +63,10 @@ def parse_args(argv=None):
 
     config = vars(parser.parse_args(argv))
     output_dir = config.pop("output_dir")
+    if model is not None:
+        config["model"] = model
+    if loss is not None:
+        config["loss"] = loss
     return config, output_dir
 
 
