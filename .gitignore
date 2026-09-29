@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.vscode/
+.idea/
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+
+/experiment_logs/
+/checkpoints/
+*.pt
+*.pth
+
+# Keep the data directory skeleton, never raw or generated data.
+/data/**
+!/data/**/
+!/data/**/.gitkeep
