@@ -69,6 +69,10 @@ DataLoader workers run on CPU. No experiment-tracking service is required.
 
 ## Data preparation
 
+For exact input versions, download/conversion commands, split sizes, and
+SHA256 verification of raw and prepared files, follow [DATA.md](DATA.md).
+The checksum manifests are tracked; the datasets themselves are not.
+
 Download data from the original providers and follow their usage and citation
 requirements. Data is not redistributed here. The scripts expect these files:
 
@@ -127,8 +131,8 @@ embeddings, listens, or provider-generated sequential files are used. With the
 optional [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
 
 ```bash
-python -m pip install huggingface_hub
-hf download yandex/yambda flat/500m/likes.parquet artist_item_mapping.parquet album_item_mapping.parquet --repo-type dataset --local-dir data/raw/yambda
+python -m pip install huggingface_hub==1.9.0
+hf download yandex/yambda flat/500m/likes.parquet artist_item_mapping.parquet album_item_mapping.parquet --repo-type dataset --revision dd6f3a19eef5866e346c3270e098baa641a44948 --local-dir data/raw/yambda
 python runs/yambda/retrieval/prepare_retrieval.py
 ```
 
@@ -315,6 +319,9 @@ and fixed-reader validation probes are not full-test metrics.
 
 Sequential preparation is opt-in through `PREPARE_SEQUENTIAL = True` in the
 relevant preparation script. No data processing is triggered by training.
+After preparation, run `sha256sum -c data/checksums/<dataset>_static.sha256`
+and, if prepared, the corresponding `<dataset>_sequential.sha256`. These
+compare every saved array and metadata file with the research artifacts.
 Historical runs used different stopping budgets (notably patience 20/5/2).
 Specify the original command's settings to reproduce an existing result; do not
 silently replace them with current defaults or pool them as a matched comparison.

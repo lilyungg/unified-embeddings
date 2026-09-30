@@ -1,0 +1,3 @@
+f4946f245fab5ca8e331e73a6a7ef82a2f6b99512f5f1977ce01379f0a086773  data/raw/yambda/flat/500m/likes.parquet
+cf1110aa2413ed70008ec9232d395660b2181ffda731002fb74da54e87b6f25d  data/raw/yambda/artist_item_mapping.parquet
+559b6576063d96280414574b32292eee7b47ee0b9f2952cb3ae670a5d19125e4  data/raw/yambda/album_item_mapping.parquet
